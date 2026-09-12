@@ -1,0 +1,34 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.turbo/
+
+# Generated and rendered media
+media/
+renders/
+*.mp4
+*.mp3
+*.wav
+*.srt
+
+# Editors and OS
+.idea/
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local infrastructure state
+docker-compose.override.yml
+infra/data/
