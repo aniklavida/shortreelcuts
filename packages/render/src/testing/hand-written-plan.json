@@ -34,7 +34,7 @@
     "provider": "manual-fixture",
     "voiceId": "synthetic-tone-fixture",
     "rate": 1.0,
-    "reason": "no TTS provider exists yet (this card proves the renderer only); each beat's narration audio is a synthesized tone of the duration a human wrote by hand, standing in for a voice"
+    "reason": "no TTS provider exists yet, and this fixture exercises the renderer rather than voice generation; each beat's narration audio is a synthesized tone of the duration a human wrote by hand, standing in for a voice"
   },
   "footage": {
     "b1": {

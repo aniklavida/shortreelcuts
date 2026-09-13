@@ -4,8 +4,8 @@
  * SPEC.md §7 sketches the eventual adapter interface as
  * `render(plan: Plan, media: ResolvedMedia): Promise<VideoFile>`. The
  * `Renderer` adapter itself, and the `MediaStore` that would produce a
- * `ResolvedMedia` from a plan's `footage`/`voice`/`music` decisions, are a
- * later card — this package is the implementation behind that seam
+ * `ResolvedMedia` from a plan's `footage`/`voice`/`music` decisions, are
+ * not built yet — this package is the implementation behind that seam
  * (STRUCTURE.md's `packages/render`, separate from `packages/providers/render`).
  *
  * `ResolvedMedia` is not a parallel plan format. It carries no decisions —

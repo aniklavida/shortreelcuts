@@ -5,9 +5,9 @@
  * `hand-written-plan.json` is committed — a human can read it, edit it and
  * re-render it, which is the whole point of proving compose against a
  * plan nobody generated. The media it refers to is not committed: no
- * footage, voice or music provider exists yet (this card proves the
- * renderer, not sourcing), so there is nothing real to check in, and
- * `.gitignore` already keeps rendered media and audio out of the repo.
+ * footage, voice or music provider exists yet — this package renders a
+ * plan, it does not source media — so there is nothing real to check in,
+ * and `.gitignore` already keeps rendered media and audio out of the repo.
  * Instead this file synthesizes stand-ins with ffmpeg's own `lavfi`
  * generators — solid colour clips in place of footage, sine tones in
  * place of a voice and a music bed — deterministically, from the numbers
