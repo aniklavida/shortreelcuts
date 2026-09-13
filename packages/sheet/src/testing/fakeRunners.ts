@@ -9,7 +9,7 @@
  */
 import { vi, type Mock } from "vitest";
 import { runAlign } from "../stages/align.js";
-import { withComposeDefaults } from "../stages/compose.js";
+import { withComposeDefaults } from "../stages/composeDefaults.js";
 import { runFootage } from "../stages/footage.js";
 import { runScript } from "../stages/script.js";
 import type { ComposeRunResult, StageRunners } from "../stages/types.js";

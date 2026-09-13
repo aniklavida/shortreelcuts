@@ -14,35 +14,12 @@
  * their v1 defaults are chosen, once, the first time a plan is composed.
  */
 import { join } from "node:path";
-import type { CaptionsPlan, MusicPlan, FormatPlan, Plan } from "@shortreelcuts/plan";
 import { render } from "@shortreelcuts/render";
+import { withComposeDefaults } from "./composeDefaults.js";
 import { synthesizeStubMedia } from "./media.js";
 import type { ComposeRunInput, ComposeRunResult } from "./types.js";
 
-const DEFAULT_CAPTIONS: CaptionsPlan = {
-  style: "bold-white-outline",
-  position: "lower-third",
-  wordsPerCue: 3,
-  reason: "three words at a time stays readable at 1080px wide on a phone screen",
-};
-
-const DEFAULT_MUSIC: MusicPlan = {
-  enabled: false,
-  volume: 0,
-  reason: "no bed selected — nothing in the brief asked for one, and the voice can carry the video alone",
-};
-
-const DEFAULT_FORMAT: FormatPlan = { width: 1080, height: 1920, fps: 30, container: "mp4" };
-
-/** Fills in compose-owned fields with their v1 defaults, only where a plan doesn't already have them decided. */
-export function withComposeDefaults(plan: Plan): Plan {
-  return {
-    ...plan,
-    captions: plan.captions ?? DEFAULT_CAPTIONS,
-    music: plan.music ?? DEFAULT_MUSIC,
-    format: plan.format ?? DEFAULT_FORMAT,
-  };
-}
+export { withComposeDefaults } from "./composeDefaults.js";
 
 export async function runCompose(input: ComposeRunInput): Promise<ComposeRunResult> {
   const plan = withComposeDefaults(input.plan);
