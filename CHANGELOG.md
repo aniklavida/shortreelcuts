@@ -14,8 +14,14 @@ All notable changes to ShortReelCuts are documented here, following [Keep a Chan
   content-addressed artefact keys so an unchanged stage's output can be
   reused instead of recomputed. Tested, including against every row of the
   product's invalidation table.
+- `packages/render`: a renderer. Given a plan and its resolved media, it
+  assembles scenes with held/trimmed footage and crossfade transitions,
+  burns in styled captions (plus a sidecar `.srt`), mixes narration with a
+  ducked background bed, and encodes 1080×1920 H.264/AAC MP4 by spawning a
+  system `ffmpeg` as a binary — never linked. Proved against a
+  hand-written plan fixture with no AI in the loop.
 
-No stage (script, voice, footage, alignment or compose), provider or
-renderer is implemented. This adds the plan document and the graph over
-it, not a pipeline — nothing here can produce a video yet, and no release
-exists.
+No script, voice, footage-sourcing or alignment stage, and no provider,
+worker or web app, is implemented. This adds a renderer that can turn an
+already-complete plan into a video; nothing here can turn a prompt into a
+plan yet, and no release exists.

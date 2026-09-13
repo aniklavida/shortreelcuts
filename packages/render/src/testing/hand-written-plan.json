@@ -1,0 +1,113 @@
+{
+  "planVersion": 1,
+  "seed": 20260913,
+  "brief": {
+    "prompt": "A 9-second walk through how tea gets from a Sylhet hillside to a cup, written directly as a plan with no AI in the loop, to prove the renderer before any stage that would produce one exists.",
+    "targetSeconds": 9,
+    "tone": "calm"
+  },
+  "script": {
+    "hook": "Every cup starts on a hillside.",
+    "beats": [
+      {
+        "id": "b1",
+        "narration": "Bengal's tea gardens start on hillsides in Sylhet.",
+        "onScreen": "The hillside",
+        "search": "tea garden hillside sylhet"
+      },
+      {
+        "id": "b2",
+        "narration": "Workers pick each leaf by hand before sunrise.",
+        "onScreen": "The picking",
+        "search": "hand picking tea leaves"
+      },
+      {
+        "id": "b3",
+        "narration": "The leaves are dried, rolled, and sealed for market.",
+        "onScreen": "The drying room",
+        "search": "tea drying room rolling leaves"
+      }
+    ],
+    "reason": "three beats — origin, harvest, processing — cover the brief's walk from hillside to cup in about nine seconds"
+  },
+  "voice": {
+    "provider": "manual-fixture",
+    "voiceId": "synthetic-tone-fixture",
+    "rate": 1.0,
+    "reason": "no TTS provider exists yet (this card proves the renderer only); each beat's narration audio is a synthesized tone of the duration a human wrote by hand, standing in for a voice"
+  },
+  "footage": {
+    "b1": {
+      "provider": "manual-fixture",
+      "assetId": "color-bar-hillside",
+      "in": 0,
+      "out": 3.0,
+      "reason": "a hillside-green colour bar, hand-picked as a placeholder — no footage provider exists yet. Exactly as long as its narration, so this beat cuts cleanly with no hold or trim"
+    },
+    "b2": {
+      "provider": "manual-fixture",
+      "assetId": "color-bar-picking",
+      "in": 0.5,
+      "out": 2.3,
+      "reason": "deliberately shorter (1.8s) than its 3.6s narration, to prove the renderer holds the last frame rather than cutting away mid-sentence"
+    },
+    "b3": {
+      "provider": "manual-fixture",
+      "assetId": "color-bar-drying",
+      "in": 0,
+      "out": 5.0,
+      "reason": "deliberately longer (5.0s) than its 2.4s narration, to prove the renderer trims the clip rather than overrunning into the next beat"
+    }
+  },
+  "align": {
+    "provider": "manual-fixture",
+    "words": {
+      "b1": [
+        { "word": "Bengal's", "startSeconds": 0.0, "endSeconds": 0.35 },
+        { "word": "tea", "startSeconds": 0.35, "endSeconds": 0.55 },
+        { "word": "gardens", "startSeconds": 0.55, "endSeconds": 0.95 },
+        { "word": "start", "startSeconds": 0.95, "endSeconds": 1.2 },
+        { "word": "on", "startSeconds": 1.2, "endSeconds": 1.35 },
+        { "word": "hillsides", "startSeconds": 1.35, "endSeconds": 1.9 },
+        { "word": "in", "startSeconds": 1.9, "endSeconds": 2.05 },
+        { "word": "Sylhet.", "startSeconds": 2.05, "endSeconds": 2.75 }
+      ],
+      "b2": [
+        { "word": "Workers", "startSeconds": 0.0, "endSeconds": 0.4 },
+        { "word": "pick", "startSeconds": 0.4, "endSeconds": 0.65 },
+        { "word": "each", "startSeconds": 0.65, "endSeconds": 0.9 },
+        { "word": "leaf", "startSeconds": 0.9, "endSeconds": 1.3 },
+        { "word": "by", "startSeconds": 1.3, "endSeconds": 1.5 },
+        { "word": "hand", "startSeconds": 1.5, "endSeconds": 1.9 },
+        { "word": "before", "startSeconds": 1.9, "endSeconds": 2.3 },
+        { "word": "sunrise.", "startSeconds": 2.3, "endSeconds": 3.3 }
+      ],
+      "b3": [
+        { "word": "The", "startSeconds": 0.0, "endSeconds": 0.15 },
+        { "word": "leaves", "startSeconds": 0.15, "endSeconds": 0.45 },
+        { "word": "are", "startSeconds": 0.45, "endSeconds": 0.65 },
+        { "word": "dried,", "startSeconds": 0.65, "endSeconds": 1.0 },
+        { "word": "rolled,", "startSeconds": 1.0, "endSeconds": 1.35 },
+        { "word": "and", "startSeconds": 1.35, "endSeconds": 1.5 },
+        { "word": "sealed", "startSeconds": 1.5, "endSeconds": 1.85 },
+        { "word": "for", "startSeconds": 1.85, "endSeconds": 2.0 },
+        { "word": "market.", "startSeconds": 2.0, "endSeconds": 2.3 }
+      ]
+    },
+    "reason": "word timings written by hand against each synthesized narration tone's duration, standing in for an aligner that does not exist yet"
+  },
+  "captions": {
+    "style": "bold-white-outline",
+    "position": "lower-third",
+    "wordsPerCue": 3,
+    "reason": "three words at a time stays readable at 1080px wide on a phone screen; white text with a black outline reads over any background colour"
+  },
+  "music": {
+    "enabled": true,
+    "provider": "manual-fixture",
+    "trackId": "ambient-tone-a",
+    "volume": 0.35,
+    "reason": "a synthesized tone stands in for a music bed, added specifically to exercise ducking under the narration — no music provider exists yet"
+  },
+  "format": { "width": 1080, "height": 1920, "fps": 30, "container": "mp4" }
+}
