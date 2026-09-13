@@ -1,0 +1,19 @@
+{
+  "name": "shortreelcuts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A self-hosted web app that turns a prompt into a short vertical video, and shows every decision it made.",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2"
+  }
+}
