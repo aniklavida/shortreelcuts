@@ -244,10 +244,13 @@ describe("buildAudioGraph", () => {
     expect(musicLine).toContain("aloop=loop=-1:size=2e9");
     expect(musicLine).toContain("atrim=end=7.500");
     expect(musicLine).toContain("volume=0.3");
+    expect(graph.filterLines).toContain("[narrmix]asplit=2[narrmixsidechain][narrmixout]");
     expect(graph.filterLines).toContain(
-      "[musicbase][narrmix]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
+      "[musicbase][narrmixsidechain]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
     );
-    expect(graph.filterLines.at(-1)).toBe("[narrmix][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]");
+    expect(graph.filterLines.at(-1)).toBe(
+      "[narrmixout][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]",
+    );
     expect(graph.outputLabel).toBe("aout");
   });
 

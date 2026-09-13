@@ -159,6 +159,11 @@ export function buildAudioGraph(
     throw new Error("music is enabled but no music file path was given to buildAudioGraph");
   }
 
+  // A labelled pad can only feed one filter — `narrmix` is needed twice
+  // (as the sidechain's trigger and again in the final mix), so it has to
+  // be split rather than referenced twice.
+  filterLines.push("[narrmix]asplit=2[narrmixsidechain][narrmixout]");
+
   const musicInputIndex = startInputIndex + timeline.scenes.length;
   filterLines.push(
     `[${musicInputIndex}:a]aformat=sample_rates=44100:channel_layouts=stereo,` +
@@ -166,9 +171,9 @@ export function buildAudioGraph(
       `volume=${music.volume}[musicbase]`,
   );
   filterLines.push(
-    "[musicbase][narrmix]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
+    "[musicbase][narrmixsidechain]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
   );
-  filterLines.push("[narrmix][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]");
+  filterLines.push("[narrmixout][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]");
 
   return {
     inputPaths: [...narrationPaths, musicPath],
