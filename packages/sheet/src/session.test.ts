@@ -13,37 +13,11 @@
  */
 import { invalidate } from "@shortreelcuts/plan";
 import { describe, expect, it, vi } from "vitest";
-import { runAlign } from "./stages/align.js";
-import { withComposeDefaults } from "./stages/compose.js";
-import { runFootage } from "./stages/footage.js";
-import { runScript } from "./stages/script.js";
-import type { ComposeRunResult, StageRunners } from "./stages/types.js";
-import { runVoice } from "./stages/voice.js";
 import { ProjectSession, type SessionEvents } from "./session.js";
-
-function fakeVideo(path: string) {
-  return { path, captionsPath: `${path}.srt`, width: 1080, height: 1920, fps: 30, durationSeconds: 12 };
-}
+import { makeFakeRunners } from "./testing/fakeRunners.js";
 
 function makeRunners() {
-  const compose = vi.fn(async (input: { plan: Parameters<StageRunners["compose"]>[0]["plan"]; workDir: string }): Promise<ComposeRunResult> => {
-    const plan = withComposeDefaults(input.plan);
-    return {
-      patch: { captions: plan.captions, music: plan.music, format: plan.format },
-      candidates: {},
-      video: fakeVideo(`${input.workDir}/output.mp4`),
-    };
-  });
-
-  return {
-    runners: {
-      script: vi.fn(runScript),
-      voice: vi.fn(runVoice),
-      footage: vi.fn(runFootage),
-      align: vi.fn(runAlign),
-      compose,
-    } satisfies StageRunners,
-  };
+  return { runners: makeFakeRunners() };
 }
 
 function makeSession(events?: SessionEvents) {
@@ -194,6 +168,31 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
 
     expect(result.ranStages).toEqual(["script", "voice", "footage", "align", "compose"]);
     expect(runners.script).toHaveBeenCalledTimes(1);
+  });
+
+  it("previewCost reports the same estimate applyOverride would, without running or recording anything", async () => {
+    const { session, runners } = makeSession();
+    await session.generate({ brief, seed: 7 });
+    vi.clearAllMocks();
+
+    const preview = session.previewCost([["voice.voiceId", "confident-male"]]);
+    expect(preview.estimate.stages).toEqual(invalidate(["voice.voiceId"]));
+    expect(runners.voice).not.toHaveBeenCalled();
+    expect(session.history).toHaveLength(1); // no new version recorded by a preview
+  });
+
+  it("applyRawPlan diffs a whole hand-edited plan down to leaf edits and re-runs only what they touch", async () => {
+    const { session, runners } = makeSession();
+    const initial = await session.generate({ brief, seed: 7 });
+    vi.clearAllMocks();
+
+    const edited = { ...initial, captions: { ...initial.captions, position: "center" as const } };
+    const result = await session.applyRawPlan(edited);
+
+    expect(result.ranStages).toEqual(["compose"]);
+    expect(result.plan.captions.position).toBe("center");
+    expect(runners.voice).not.toHaveBeenCalled();
+    expect(runners.compose).toHaveBeenCalledTimes(1);
   });
 
   it("keeps every prior version in history rather than overwriting it", async () => {

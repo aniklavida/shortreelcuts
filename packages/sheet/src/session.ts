@@ -8,7 +8,7 @@
  * worker yet (`packages/db` doesn't exist). Swapping this for a real
  * queued worker later changes where this class runs, not its contract.
  */
-import { diffPaths, invalidate, parsePlan, type Brief, type Plan, type Stage } from "@shortreelcuts/plan";
+import { diffPaths, invalidate, leavesOf, parsePlan, type Brief, type Plan, type Stage } from "@shortreelcuts/plan";
 import type { VideoFile } from "@shortreelcuts/render";
 import { estimateRerun, type CostEstimate } from "./cost.js";
 import { getAtPath, nearestReasonPath, setAllAtPaths } from "./patch.js";
@@ -159,6 +159,20 @@ export class ProjectSession {
   }
 
   /**
+   * What applying `edits` would cost, without running anything — the pure
+   * half of `applyOverride`. This is what an `OverrideControl` calls the
+   * moment a pending value changes, so the sheet can show a cost hint
+   * (SPEC.md §9 rule 3) before the person has even clicked "Apply", let
+   * alone before a stage has run.
+   */
+  previewCost(edits: readonly Edit[]): { readonly estimate: CostEstimate; readonly changedPaths: readonly string[] } {
+    const before = this.plan;
+    const after = setAllAtPaths(before, edits) as Plan;
+    const changedPaths = diffPaths(before, after);
+    return { estimate: estimateRerun(invalidate(changedPaths)), changedPaths };
+  }
+
+  /**
    * Applies one or more leaf edits, computes exactly which stages must
    * re-run via `diffPaths` + `invalidate()`, reports the cost of that
    * *before* running anything, then runs only those stages — in the
@@ -205,6 +219,22 @@ export class ProjectSession {
     const plan = parsePlan(draft);
     this.versions.push(plan);
     return { plan, ranStages: stages, estimate, video: this.video };
+  }
+
+  /**
+   * Screen 3: accepts a raw, hand-edited plan document, validates it, and
+   * runs it through exactly the same `applyOverride` path as any other
+   * change — every leaf that differs from the plan on screen becomes one
+   * edit. There is no separate "plan editor" code path to keep honest;
+   * editing JSON directly is just an override with more leaves at once.
+   */
+  async applyRawPlan(rawPlan: unknown): Promise<OverrideResult> {
+    const before = this.plan;
+    const candidate = parsePlan(rawPlan);
+    const changedPaths = diffPaths(before, candidate);
+    const values = new Map(leavesOf(candidate).map((leaf) => [leaf.path, leaf.value] as const));
+    const edits: Edit[] = changedPaths.map((path) => [path, values.get(path)]);
+    return this.applyOverride(edits);
   }
 }
 

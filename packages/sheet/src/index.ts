@@ -9,3 +9,8 @@ export { runVoice } from "./stages/voice.js";
 export { runFootage } from "./stages/footage.js";
 export { runAlign } from "./stages/align.js";
 export { runCompose, withComposeDefaults } from "./stages/compose.js";
+export { App } from "./components/App.js";
+export { DecisionSheet } from "./components/DecisionSheet.js";
+export { PromptScreen } from "./components/PromptScreen.js";
+export { PlanEditorScreen } from "./components/PlanEditorScreen.js";
+export { useProjectSession, type StageStatus, type UseProjectSession } from "./components/useProjectSession.js";

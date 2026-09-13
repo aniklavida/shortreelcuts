@@ -22,12 +22,19 @@ import { ownerOf, type Plan, type Stage } from "@shortreelcuts/plan";
 import { STUB_VOICES } from "./stages/voice.js";
 import type { DecisionCandidate } from "./stages/types.js";
 
+/**
+ * Four kinds, not five: a "select" backed by `candidates` (see
+ * `DecisionRow.candidates`) is rendered as the clickable strip the card's
+ * own mockup shows — "the four clips it did not pick" — while a "select"
+ * with none (`captions.style`, say, which nothing rejected) is a plain
+ * dropdown. The row decides which by whether it has candidates, not by a
+ * second control kind that would just duplicate that information.
+ */
 export type OverrideControl =
   | { readonly kind: "select"; readonly planPath: string; readonly options: readonly { value: string; label: string }[] }
   | { readonly kind: "text"; readonly planPath: string }
   | { readonly kind: "slider"; readonly planPath: string; readonly min: number; readonly max: number; readonly step: number }
-  | { readonly kind: "toggle"; readonly planPath: string }
-  | { readonly kind: "clipPicker"; readonly planPath: string; readonly options: readonly DecisionCandidate[] };
+  | { readonly kind: "toggle"; readonly planPath: string };
 
 export interface DecisionRow {
   readonly id: string;
@@ -159,7 +166,9 @@ function footageGroup(plan: Plan, candidatesFor: CandidateLookup): DecisionGroup
       chosen: (candidates ?? []).find((c) => c.chosen)?.label ?? clip.assetId,
       reason: clip.reason,
       candidates,
-      control: candidates ? { kind: "clipPicker", planPath: `footage.${beat.id}.assetId`, options: candidates } : undefined,
+      control: candidates
+        ? { kind: "select", planPath: `footage.${beat.id}.assetId`, options: candidates.map((c) => ({ value: c.id, label: c.label })) }
+        : undefined,
     });
     rows.push({
       id: `script.beats.${i}.search`,

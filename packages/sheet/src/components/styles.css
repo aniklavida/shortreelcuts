@@ -1,0 +1,203 @@
+/*
+ * Deliberately not a design system: no input/label grid, no bordered
+ * "field" boxes. Every decision reads as a sentence with a small inline
+ * control revealed only on request — see the card's own rule that a
+ * settings-panel *look*, not just a settings-panel *sequence*, is a
+ * failure.
+ */
+.src-app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+.src-prompt textarea {
+  width: 100%;
+  min-height: 5rem;
+  font-size: 1.05rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+.src-chips {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.src-chip {
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.src-chip[aria-pressed="true"] {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.src-generate {
+  margin-top: 1rem;
+  font-size: 1rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.src-generate:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.src-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+  color: #555;
+}
+
+.src-group {
+  border-top: 1px solid #e5e5e5;
+  padding: 0.75rem 0;
+}
+
+.src-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.src-group-title {
+  font-weight: 600;
+}
+
+.src-group-summary {
+  color: #666;
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+.src-group-count {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.src-row {
+  padding: 0.6rem 0 0.6rem 1rem;
+}
+
+.src-row-sentence {
+  margin: 0;
+}
+
+.src-row-reason {
+  color: #777;
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
+  font-style: italic;
+}
+
+.src-change-link {
+  background: none;
+  border: none;
+  color: #0a5cd8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-left: 0.4rem;
+}
+
+.src-candidates {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.src-candidate {
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.src-candidate[aria-pressed="true"] {
+  border-color: #1a1a1a;
+  background: #eee;
+  font-weight: 600;
+}
+
+.src-override {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #f7f7f7;
+  border-radius: 0.5rem;
+}
+
+.src-cost-hint {
+  font-size: 0.85rem;
+  color: #8a5a00;
+  margin: 0.35rem 0;
+}
+
+.src-apply {
+  margin-right: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 0.4rem;
+  border: none;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.src-apply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.src-cancel {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+}
+
+.src-readonly-note {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.src-plan-editor textarea {
+  width: 100%;
+  min-height: 20rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.src-error {
+  color: #b00020;
+}
