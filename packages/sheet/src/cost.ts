@@ -2,13 +2,13 @@
  * What an override is expected to cost, computed from the stage set
  * `invalidate()` returns — before any stage runs.
  *
- * SPEC.md §6's table is explicitly "a target, not a measured result",
- * because no real provider exists to measure yet (SPEC.md §5 is still
- * open, and DECISIONS.md names no vendor). These numbers are the same
- * kind of placeholder: a deterministic, disclosed heuristic good enough
- * to prove the *mechanism* — a cost shown before a change is applied —
- * not a benchmark. Recalibrate this table, not the mechanism, once real
- * stages exist.
+ * `docs/SPEC.md` §6's table is explicitly "a target for v1, not a measured
+ * result", because no real provider exists to measure yet — which script
+ * and voice providers v1 ships against is still open (§13). These numbers
+ * are the same kind of placeholder: a deterministic, disclosed heuristic
+ * good enough to prove the *mechanism* — a cost shown before a change is
+ * applied — not a benchmark. Recalibrate this table, not the mechanism,
+ * once real stages exist.
  */
 import type { Stage } from "@shortreelcuts/plan";
 

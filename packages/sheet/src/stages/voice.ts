@@ -1,9 +1,11 @@
 /**
  * The voice stage — stubbed.
  *
- * No TTS provider exists (SPEC.md §5.1 is open, and DECISIONS.md rejects
- * `edge-tts` regardless). `STUB_VOICES` stands in for what a real
- * `VoiceProvider.voices()` capability call would return (SPEC.md §7) —
+ * No TTS provider exists yet: which one v1 ships against is still open
+ * (`docs/SPEC.md` §13), and `edge-tts` is already ruled out on licence and
+ * because it leans on a third party's undocumented endpoint (§14).
+ * `STUB_VOICES` stands in for what a real `VoiceProvider.voices()`
+ * capability call would return (`docs/SPEC.md` §7) —
  * it is what the sheet's voice `OverrideControl` is resolved from, so
  * swapping this for a real provider later changes zero UI code.
  */

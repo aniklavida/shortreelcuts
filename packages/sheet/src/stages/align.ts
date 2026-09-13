@@ -1,11 +1,12 @@
 /**
  * The align stage — stubbed.
  *
- * DECISIONS.md calls for "a Whisper-family aligner run as a separate
- * process" — not built yet. Unlike the other stubs, alignment never
- * chooses between candidates (SPEC.md doesn't model it as one); it
- * measures. So this stub has no rejected options to show — its decision
- * row on the sheet is read-only, which `decisions.ts` renders as such.
+ * Alignment is meant to be a Whisper-family runtime run as a separate
+ * process (`docs/SPEC.md` §14) — not built yet. Unlike the other stubs,
+ * alignment never chooses between candidates (the spec doesn't model it as
+ * one); it measures. So this stub has no rejected options to show — its
+ * decision row on the sheet is read-only, which `decisions.ts` renders as
+ * such.
  */
 import type { AlignedWord, AlignPlan, Plan } from "@shortreelcuts/plan";
 import type { PlanSoFarInput, StageResult } from "./types.js";
