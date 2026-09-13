@@ -42,8 +42,9 @@ function roundToFive(seconds: number): number {
 /**
  * Sums the declared cost of every stage in `stages` and phrases a
  * one-line headline from the most upstream (and so most expensive) one —
- * matching the card's own examples: *"Re-renders in about 4 seconds"*,
- * *"Regenerates the voiceover — about 30 seconds"*.
+ * matching the examples `docs/SPEC.md` §8 gives for an override's stated
+ * cost: *"Re-renders in about 4 seconds"*, *"Regenerates the voiceover —
+ * about 30 seconds"*.
  */
 export function estimateRerun(stages: readonly Stage[]): CostEstimate {
   if (stages.length === 0) {

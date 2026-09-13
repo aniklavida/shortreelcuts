@@ -6,13 +6,13 @@
  * `docs/STRUCTURE.md` places this file inside `packages/plan` once the real
  * stages exist (`decisions.ts`, "the bridge between the pipeline and the
  * interface"). It lives here, in the sheet package, while the stages
- * themselves are stubs owned by this same card — moving it later is a file
+ * themselves are the stubs that also live here — moving it later is a file
  * move, not a rewrite, because nothing here reaches into `@shortreelcuts/plan`
  * beyond what `ownerOf`/`ownerOf`-shaped reasoning already exposes.
  *
- * The one rule every row here follows, because the card's acceptance
- * criteria say so: **every row states what was chosen in plain language,
- * the one-line reason the stage recorded, and — only when it is genuinely
+ * The one rule every row here follows, because `docs/SPEC.md` §17 makes
+ * it an acceptance criterion: **every row states what was chosen in plain
+ * language, the one-line reason the stage recorded, and — only when it is genuinely
  * an override rather than a fact about v1 — the smallest control that
  * changes it.** A row with no `control` is not a bug: `format.*` and the
  * word-timing row are real plan fields with nothing to override yet (see
@@ -24,10 +24,10 @@ import type { DecisionCandidate } from "./stages/types.js";
 
 /**
  * Four kinds, not five: a "select" backed by `candidates` (see
- * `DecisionRow.candidates`) is rendered as the clickable strip the card's
- * own mockup shows — "the four clips it did not pick" — while a "select"
- * with none (`captions.style`, say, which nothing rejected) is a plain
- * dropdown. The row decides which by whether it has candidates, not by a
+ * `DecisionRow.candidates`) is rendered as the clickable strip Screen 2
+ * sketches in `docs/SPEC.md` §8 — the other candidates it did not pick —
+ * while a "select" with none (`captions.style`, say, which nothing
+ * rejected) is a plain dropdown. The row decides which by whether it has candidates, not by a
  * second control kind that would just duplicate that information.
  */
 export type OverrideControl =
@@ -292,7 +292,7 @@ function formatGroup(plan: Plan): DecisionGroup {
   };
 }
 
-/** Builds every group Screen 2 renders, in the order the card's own sketch lists them. */
+/** Builds every group Screen 2 renders, in the reading order `docs/SPEC.md` §8 sketches: the script first, then what is made from it, the format last. */
 export function buildDecisionGroups(plan: Plan, candidatesFor: CandidateLookup): readonly DecisionGroup[] {
   return [
     scriptGroup(plan, candidatesFor),

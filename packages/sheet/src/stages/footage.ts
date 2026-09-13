@@ -4,10 +4,9 @@
  * Neither footage source SPEC.md §13 leaves open — a stock library, or
  * generated footage — is implemented, and the decision between them is
  * still open. This stub proposes several candidate clips per beat and
- * picks one, so the sheet has something
- * concrete to show for "the four clips it did not pick" — the card's own
- * example of what turns "trust me" into a decision someone can disagree
- * with.
+ * picks one, so the sheet has something concrete to show for the
+ * candidates it did not pick (SPEC.md §8), which is what turns "trust me"
+ * into a decision someone can disagree with.
  */
 import type { FootageClip, FootagePlan, Plan } from "@shortreelcuts/plan";
 import { makeRng } from "./rng.js";

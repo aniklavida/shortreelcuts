@@ -9,13 +9,13 @@ describe("estimateRerun", () => {
     expect(estimate.headline).toBe("Nothing to re-run");
   });
 
-  it("phrases a single compose-only re-run as the card's own example", () => {
+  it("phrases a single compose-only re-run the way SPEC.md §8 words it", () => {
     const estimate = estimateRerun(["compose"]);
     expect(estimate.headline).toMatch(/^Re-renders in about \d+ seconds$/);
     expect(estimate.path).toBe("compose");
   });
 
-  it("phrases a voice → align → compose re-run as the card's own example", () => {
+  it("phrases a voice → align → compose re-run the way SPEC.md §8 words it", () => {
     const estimate = estimateRerun(["voice", "align", "compose"]);
     expect(estimate.headline).toMatch(/^Regenerates the voiceover — about \d+ seconds$/);
     expect(estimate.path).toBe("voice → align → compose");

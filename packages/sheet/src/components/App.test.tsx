@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 /**
- * The end-to-end proof, at the UI layer, of the card's own verification
- * demand: change a field, and confirm the re-run set is exactly what
- * `invalidate()` predicted — not more — and that the cost estimate is
- * visible before the re-run, not after. `compose` is the fast fake from
- * `testing/fakeRunners.ts`; `session.e2e.test.ts` is where the real one
- * (real `ffmpeg`, via `@shortreelcuts/render`) is proven the same way.
+ * The end-to-end proof, at the UI layer, of the two acceptance criteria in
+ * `docs/SPEC.md` §17 that the sheet stands on: change a field, and confirm
+ * the re-run set is exactly what `invalidate()` predicted — not more — and
+ * that the cost estimate is visible before the re-run, not after.
+ *
+ * `compose` is the fast fake from `testing/fakeRunners.ts`;
+ * `session.e2e.test.ts` is where the real one (real `ffmpeg`, via
+ * `@shortreelcuts/render`) is proven the same way.
  */
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";

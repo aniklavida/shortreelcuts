@@ -1,5 +1,5 @@
 /**
- * "The smallest control that does the job" (the card's own phrase),
+ * "The smallest control that does the job" (`docs/SPEC.md` §8),
  * resolved from `DecisionRow.control` rather than one hard-coded form
  * per field — adding a stage later means adding a `control.kind` here at
  * most, never a new screen.

@@ -1,5 +1,5 @@
 /**
- * The test that matters most for this card: does an override re-run
+ * The test that matters most for this package: does an override re-run
  * *exactly* the stages `@shortreelcuts/plan`'s own `invalidate()` predicts
  * — proved against the real `invalidate()`, not a re-implementation of it
  * — and is the cost of that re-run reported before a single stage runs?
@@ -99,7 +99,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     expect(result.plan.voice).toEqual(initial.voice); // untouched
   });
 
-  it("changing a caption colour/style re-runs compose only, per the card's own acceptance example", async () => {
+  it("changing a caption colour/style re-runs compose only, per SPEC.md §17's acceptance criterion", async () => {
     const { session, runners } = makeSession();
     await session.generate({ brief, seed: 7 });
     vi.clearAllMocks();

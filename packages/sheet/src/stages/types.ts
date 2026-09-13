@@ -1,11 +1,11 @@
 /**
  * The stage runner contract the decision sheet is built against.
  *
- * Per the card that produced this package: "Build it against stubbed
- * stages." Only `compose` has a real implementation anywhere in this
- * repository (`@shortreelcuts/render`, card 3) — `script`, `voice`,
- * `footage` and `align` do not exist as products yet. This file is the
- * seam that keeps that honest: every stub implements the same shape a
+ * The sheet is built against stubbed stages on purpose. Only `compose`
+ * has a real implementation anywhere in this repository
+ * (`@shortreelcuts/render`) — `script`, `voice`, `footage` and `align`
+ * do not exist as products yet. This file is the seam that keeps that
+ * honest: every stub implements the same shape a
  * real provider-backed stage would, so wiring in a real script/voice/
  * footage/align stage later means swapping the object passed to
  * `ProjectSession`, not touching the sheet.
@@ -13,8 +13,8 @@
  * This mirrors SPEC.md §7's adapter rule in spirit — "a provider returns
  * candidates, never a final choice" — one level up: here a *stage*
  * returns candidates plus the one it picked, because the sheet needs
- * exactly that shape to show "the four clips it did not pick" per the
- * card's own wording.
+ * exactly that shape to show the candidates a stage rejected alongside
+ * the one it chose (`docs/SPEC.md` §8).
  */
 import type { AlignPlan, Brief, FootagePlan, Plan, ScriptPlan, Stage, VoicePlan } from "@shortreelcuts/plan";
 import type { VideoFile } from "@shortreelcuts/render";

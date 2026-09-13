@@ -1,5 +1,5 @@
 /**
- * The claim this card has to prove for real, not just against a fake:
+ * The claim this package has to prove for real, not just against a fake:
  * "only compose is real." This runs the actual stub script/voice/footage/
  * align stages together with the actual `runCompose` — real synthesized
  * media, real `ffmpeg`, a real playable MP4 — through `ProjectSession`,

@@ -1,9 +1,9 @@
 /*
  * Deliberately not a design system: no input/label grid, no bordered
  * "field" boxes. Every decision reads as a sentence with a small inline
- * control revealed only on request — see the card's own rule that a
- * settings-panel *look*, not just a settings-panel *sequence*, is a
- * failure.
+ * control revealed only on request. A settings-panel *look* would fail
+ * SPEC.md §8's promise ("a collapsed settings panel is still a form with
+ * a lid on it") just as a settings-panel *sequence* would.
  */
 .src-app {
   max-width: 640px;

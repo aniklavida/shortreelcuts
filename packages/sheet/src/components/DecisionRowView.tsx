@@ -1,8 +1,9 @@
 /**
  * One row: what was chosen, why, and — the smallest control that does the
  * job. A row with rejected candidates (a clip, a hook, a voice) shows them
- * at a glance, because "the four clips it did not pick" is the card's own
- * example of what turns "trust me" into something you can disagree with.
+ * at a glance, because showing the candidates a stage rejected next to the
+ * one it chose (`docs/SPEC.md` §8) is what turns "trust me" into something
+ * you can disagree with.
  * A row without candidates (a slider, a toggle, free text) keeps its
  * control behind a "Change" disclosure — SPEC.md §9 rule 6, progressive
  * disclosure is depth, not hiding, and a plain sentence is the shallowest

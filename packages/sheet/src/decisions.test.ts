@@ -47,7 +47,7 @@ describe("buildDecisionGroups", () => {
     }
   });
 
-  it("the six groups match the card's own grouping, each with a short collapsed summary", () => {
+  it("groups the sheet into the plan's own six decision namespaces, each with a short collapsed summary", () => {
     const plan = makeSheetFixturePlan();
     const groups = buildDecisionGroups(plan, noCandidates);
     expect(groups.map((g) => g.id)).toEqual(["script", "voice", "footage", "captions", "music", "format"]);

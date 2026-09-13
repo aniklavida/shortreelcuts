@@ -15,7 +15,7 @@ import { getAtPath, nearestReasonPath, setAllAtPaths } from "./patch.js";
 import type { DecisionCandidate, StageRunners } from "./stages/types.js";
 
 export interface SessionEvents {
-  /** Fired once per override, before any stage in the returned set has started. This ordering is load-bearing — see the card's "cost before change" rule. */
+  /** Fired once per override, before any stage in the returned set has started. This ordering is load-bearing — SPEC.md §9 rule 3, the cost of a change is shown before the change. */
   onCostEstimate?(estimate: CostEstimate, changedPaths: readonly string[]): void;
   onStageStart?(stage: Stage): void;
   onStageComplete?(stage: Stage, elapsedMs: number): void;
@@ -74,7 +74,7 @@ export class ProjectSession {
     this.events = options.events ?? {};
   }
 
-  /** The plan currently on screen. Throws before the first `generate()` — nothing is shown before a render, per the card's own rule. */
+  /** The plan currently on screen. Throws before the first `generate()` — nothing is shown before a render, and SPEC.md §9 rule 1 makes a control reachable before the first render a bug. */
   get plan(): Plan {
     const current = this.versions[this.versions.length - 1];
     if (!current) throw new Error("no plan yet — call generate() first");
