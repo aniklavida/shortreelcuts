@@ -251,21 +251,23 @@ Stages report as they complete, and each drops its decisions into the sheet imme
 
 A render is resumable from its last completed stage. Closing the browser does not cancel a job.
 
-## 11 · One provider per slot
+## 11 · Models and footage sources
 
-Five slots, one implementation each at v1.
+Five slots. **All of this is planned for v1.0; none of it is implemented.**
 
-| Slot | v1 |
+| Slot | Planned for v1.0 |
 |---|---|
-| Script | one provider |
-| Voice | one provider |
-| Footage | one provider |
-| Align | one provider, run as a separate process |
+| Script | **Any language model you choose.** A hosted model with your own API key, an agent subscription you already pay for connected by signing in, or a model running on your own hardware. All three are first-class at v1 |
+| Voice | **A speech model you choose**, hosted with your own key or running on your own hardware |
+| Footage | **Chosen per scene, from three sources**, which can be mixed in one video: stock clips from Pexels or Pixabay with your own API key · AI-generated video from a generation model you connect · **motion graphics written as code** by the model you connected, rendered to video |
+| Align | a Whisper-family runtime, run as a separate process |
 | Render | `ffmpeg` |
 
-**This is a decision, not a gap.** A dozen interchangeable providers per slot is a dozen surfaces that can break, a dozen sets of credentials to document, and a support matrix nobody can test — an accumulation that makes a project slow to change. Breadth is a maintenance liability disguised as a feature list.
+**Motion graphics written as code are the lead footage source**, not an add-on: animated text, diagrams, charts and illustrations that the model writes as animation code and ShortReelCuts renders into frames, so a scene can show exactly what the narration says rather than the nearest stock clip.
 
-The interfaces make adding one cheap. **A second provider enters a slot when a user demonstrates a need for it, not when it exists.**
+**The model is your choice, not a list this project maintains.** Script and voice sit behind a provider-neutral interface, so a hosted API and a model on your own hardware are both ordinary implementations of it rather than one being a later port. Local models run as a separate process.
+
+**Everywhere else, breadth is still a cost.** A dozen interchangeable integrations per slot is a dozen surfaces that can break, a dozen sets of credentials to document, and a support matrix nobody can test. The interfaces make adding one cheap; **a new integration enters a slot when a user demonstrates a need for it, not when it exists.**
 
 ## 12 · Non-goals
 
@@ -291,15 +293,21 @@ Postgres, the web app, the worker.
 | Postgres | Your machine | None |
 | `ffmpeg` | Your machine, as a binary | None. CPU time |
 | Media files | Your disk, behind a `MediaStore` interface | Disk |
-| Script and voice | Depends on the configured providers | **Not settled — see below** |
-| Footage | Depends on the configured provider | **Not settled — see below** |
+| Script and voice | The model you connect — a hosted API, or your own hardware | Hosted: billed by that provider to your key or subscription. Local: your hardware |
+| Footage | Per scene: a stock library, a generation provider, or your machine | See below |
 
-**Two questions are genuinely open**, and they are open because they change what running this costs rather than because nobody has thought about them:
+Both questions that decide this bill are settled. **Planned for v1.0, not implemented:**
 
-1. Does v1 use a hosted key that you supply, or a model running on your own hardware?
-2. Does footage come from a stock library, or is it generated?
+1. **Models: whichever you choose, hosted or on your own hardware.** Bring your own API key, connect an agent subscription you already pay for by signing in, or run a model locally. With a hosted model, the prompt and the script text are sent to that provider. With a local model, they do not leave the machine. **Cost and output quality depend on the model you connect.**
+2. **Footage: three sources, each with your own key, chosen per scene.**
 
-Neither is answered here, and the specification is written so either answer drops in without redesign. **Whichever way they land, this documentation will state exactly which stages make an external call and what a video costs to produce, before anyone installs.**
+| Footage source | What leaves the machine | What it costs |
+|---|---|---|
+| Stock clips (Pexels, Pixabay) | The scene's search term, to that library | Free within the library's API limits. Its terms of use will be stated here before stock footage ships |
+| AI-generated video | The scene description, to the generation provider you connect | Billed per clip by that provider. **Shown before the scene renders** |
+| Motion graphics written as code | The request to the model you connected, as for the script | The model's tokens, plus render time on your machine |
+
+**This documentation will state exactly which stages make an external call and what a video costs to produce, before anyone installs.** Nobody should find out about a bill after installing.
 
 **Hardware requirements are deliberately absent.** Video encoding is CPU-heavy and alignment may want a GPU, but nobody has measured this on real machines. A guess published in a README reads as a specification, so there is no table here until there is a measurement.
 
@@ -358,7 +366,7 @@ Other aspect ratios are an override on the format group, not a v1 promise — ea
 ## 16 · Data and privacy
 
 - Projects, plans and media live in your PostgreSQL and on your disk.
-- Nothing is sent anywhere except to the providers configured in `.env`, and this documentation will name exactly which stages leave the machine once §13 is settled.
+- Nothing is sent anywhere except to the providers you connect. §13 lists which stages can leave the machine for each choice. With local script and voice models and motion-graphics footage, nothing is planned to leave it; a stock scene sends only its search term.
 - **No telemetry.** Not opt-out telemetry — none.
 - Secrets live in `.env` and never in the database, the plan document or a log line. A plan is exportable and shareable, so a key inside one would be a leak with legs.
 
@@ -387,7 +395,8 @@ Binary. Every one is something a person can watch happen.
 
 - **The decision sheet is unproven, and it is the whole thesis.** If people ignore it and just regenerate until something is acceptable, the differentiator exists on paper and not in practice. It needs testing with real users while the pipeline is still cheap to change.
 - **Alignment is the hardest stage.** 150 ms of caption drift looks broken to a viewer even when everything else is right, and it is the acceptance criterion most likely to fail.
-- **Footage relevance is the standing complaint about every tool of this kind**, and a stock library caps it structurally. §13 is where that is decided.
-- **Cost lands on the self-hoster.** Whatever §13 resolves to becomes their bill, and it has to be stated before they install.
+- **Footage relevance is the standing complaint about every tool of this kind**, and a stock library caps it structurally. That is why each scene can instead use generated video or motion graphics written as code (§11) — and why those two sources have to be good, not just present.
+- **Cost lands on the self-hoster.** It depends on the model and footage sources they connect, and §13 has to state it before they install.
+- **Code written by a model is untrusted.** Motion-graphics code is generated, so rendering it must not be able to reach the network or the filesystem, and it must render the same frames every time for the same plan.
 - **Scope creep toward an editor.** Every "just let me nudge this" request points at a timeline. The answer is an override, or a no.
 - **Writing the pipeline from scratch is the slow path.** Five stages, each with real failure modes — weak scripts, wrong footage, flat delivery, drifting captions, encoder edge cases. v1 output will be rough before it is good, and the decision sheet has to be worth that.
