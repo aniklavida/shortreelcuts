@@ -48,8 +48,11 @@ export interface RenderOptions {
   /** Overrides `SHORTREELCUTS_FFPROBE_PATH` / the `ffprobe` on `PATH`. */
   readonly ffprobePath?: string;
   /**
-   * Crossfade duration between consecutive scenes, in seconds. Not a plan
-   * field yet — see `DECISIONS.md` in this package's commit history for why.
+   * Crossfade duration between consecutive scenes, in seconds. Not part of
+   * the plan schema yet, so it is a render-time argument rather than a
+   * recorded decision: it gets no row on the decision sheet, and two renders
+   * of one plan are only byte-identical if both pass the same value (or
+   * both omit it and take the default).
    */
   readonly transitionSeconds?: number;
   /** Target average video bitrate, e.g. `"6M"`. A sane default is chosen for `plan.format`. */

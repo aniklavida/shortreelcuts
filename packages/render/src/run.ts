@@ -80,8 +80,8 @@ export async function render(plan: Plan, media: ResolvedMedia, options: RenderOp
   const videoBitrate = options.videoBitrate ?? DEFAULT_VIDEO_BITRATE;
 
   const args = [
-    // DECISIONS.md / SPEC.md §18: re-rendering the same plan twice must
-    // produce byte-identical output. `bitexact` drops the muxer's
+    // Re-rendering the same plan twice must produce byte-identical output
+    // (`docs/SPEC.md` §17). `bitexact` drops the muxer's
     // wall-clock creation/modification timestamps and encoder version
     // strings; pinning every filter and encoder to one thread removes the
     // floating-point non-determinism multi-threaded frame processing can

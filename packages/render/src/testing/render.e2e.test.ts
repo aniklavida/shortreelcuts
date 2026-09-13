@@ -107,8 +107,8 @@ describe.skipIf(!RUN_E2E)("render() against the hand-written plan fixture", () =
   it(
     "renders the same plan to byte-identical output twice, media regenerated from scratch each time",
     async () => {
-      // DECISIONS.md / SPEC.md §18: "re-rendering the same plan twice
-      // produces byte-identical output" — not a given for free with a
+      // `docs/SPEC.md` §17: "re-rendering the same plan twice produces
+      // byte-identical output" — not a given for free with a
       // real video encoder. run.ts pins ffmpeg to bitexact, single-threaded
       // encoding for exactly this; this test is what proves that choice
       // actually holds, end to end, rather than trusting the flags exist.

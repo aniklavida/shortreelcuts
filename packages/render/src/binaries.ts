@@ -2,15 +2,16 @@
  * Where `ffmpeg` and `ffprobe` come from, and whether the one we found can
  * do what compose needs.
  *
- * DECISIONS.md: "Rendering is `ffmpeg`, invoked as a binary" — a separate
- * process, spawned by `execa` (MIT, compiled into this package), never
- * linked. That is what keeps ffmpeg's own licence (LGPL by default, GPL
- * only if a build enables it) off this codebase and off a self-hoster's.
- * See `process.ts` for the spawn itself.
+ * Rendering is `ffmpeg`, invoked as a binary — a separate process, spawned
+ * by `execa` (MIT, compiled into this package), never linked. That is what
+ * keeps ffmpeg's own licence (LGPL by default, GPL only if a build enables
+ * it) off this codebase and off a self-hoster's. See `process.ts` for the
+ * spawn itself, and `docs/SPEC.md` §14 for the policy that splits
+ * dependencies compiled into someone's code from ones run as a process.
  *
- * `ffmpeg-static` (GPL-3.0) and `fluent-ffmpeg` (archived) were both
- * rejected for this reason and this one — see DECISIONS.md. We require a
- * system `ffmpeg`/`ffprobe` instead and document the install.
+ * That policy is also why there is no bundled binary here: `ffmpeg-static`
+ * is GPL-3.0, and `fluent-ffmpeg` is archived and so unmaintained. We
+ * require a system `ffmpeg`/`ffprobe` instead and document the install.
  */
 import { execa } from "execa";
 
