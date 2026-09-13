@@ -1,6 +1,6 @@
 import type { FormatPlan } from "@shortreelcuts/plan";
 import { describe, expect, it } from "vitest";
-import { buildVideoGraph } from "./filtergraph.js";
+import { applyCaptionsBurnIn, buildVideoGraph, escapeFilterPath } from "./filtergraph.js";
 import type { Timeline } from "./timeline.js";
 
 const FORMAT: FormatPlan = { width: 1080, height: 1920, fps: 30, container: "mp4" };
@@ -136,5 +136,41 @@ describe("buildVideoGraph", () => {
 
     const graph = buildVideoGraph(timeline, FORMAT, 5);
     expect(graph.filterLines[0]?.startsWith("[5:v]")).toBe(true);
+  });
+});
+
+describe("escapeFilterPath", () => {
+  it("escapes backslashes, single quotes and colons", () => {
+    expect(escapeFilterPath(String.raw`/tmp/it's:mine\here.ass`)).toBe(String.raw`/tmp/it\'s\:mine\\here.ass`);
+  });
+
+  it("leaves an ordinary absolute path unchanged apart from quoting concerns", () => {
+    expect(escapeFilterPath("/tmp/renders/beat.ass")).toBe("/tmp/renders/beat.ass");
+  });
+});
+
+describe("applyCaptionsBurnIn", () => {
+  it("appends a subtitles filter reading from the video graph's output label", () => {
+    const timeline = timelineOf([
+      {
+        beatId: "b1",
+        footagePath: "/media/f1.mp4",
+        sourceInSeconds: 0,
+        sourceOutSeconds: 4,
+        narrationPath: "/media/n1.wav",
+        narrationDurationSeconds: 4,
+        sceneDurationSeconds: 4,
+        holdLastFrameSeconds: 0,
+        startOffsetSeconds: 0,
+      },
+    ]);
+    const video = buildVideoGraph(timeline, FORMAT);
+
+    const withCaptions = applyCaptionsBurnIn(video, "/tmp/renders/beat.ass");
+
+    expect(withCaptions.outputLabel).toBe("vout");
+    expect(withCaptions.filterLines).toHaveLength(video.filterLines.length + 1);
+    expect(withCaptions.filterLines.at(-1)).toBe("[scene0]subtitles=filename='/tmp/renders/beat.ass'[vout]");
+    expect(withCaptions.inputPaths).toEqual(video.inputPaths);
   });
 });

@@ -89,3 +89,30 @@ export function buildVideoGraph(timeline: Timeline, format: FormatPlan, startInp
     outputLabel: currentLabel,
   };
 }
+
+/**
+ * Escapes a filesystem path for use as a quoted ffmpeg filter option value.
+ * The `subtitles`/`ass` filter's `filename` is parsed twice — once by
+ * ffmpeg's filtergraph syntax, once internally — so even a single-quoted
+ * value needs its own backslashes and quotes escaped to survive both
+ * passes intact.
+ */
+export function escapeFilterPath(path: string): string {
+  return path.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/:/g, "\\:");
+}
+
+/**
+ * Burns the given `.ass` file into the assembled video. This is the last
+ * video filter: everything upstream (`buildVideoGraph`) already produced a
+ * single full-canvas stream, so `subtitles` only has to draw on top of it.
+ */
+export function applyCaptionsBurnIn(videoSegment: FilterGraphSegment, assPath: string): FilterGraphSegment {
+  const outputLabel = "vout";
+  const filterLine = `[${videoSegment.outputLabel}]subtitles=filename='${escapeFilterPath(assPath)}'[${outputLabel}]`;
+  return {
+    inputPaths: videoSegment.inputPaths,
+    startInputIndex: videoSegment.startInputIndex,
+    filterLines: [...videoSegment.filterLines, filterLine],
+    outputLabel,
+  };
+}
