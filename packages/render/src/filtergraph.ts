@@ -5,7 +5,7 @@
  * Nothing here touches the filesystem or spawns a process — `run.ts` does
  * that with what this file returns.
  */
-import type { FormatPlan } from "@shortreelcuts/plan";
+import type { FormatPlan, MusicPlan } from "@shortreelcuts/plan";
 import type { SceneClip, Timeline } from "./timeline.js";
 
 const EPSILON_SECONDS = 0.005;
@@ -114,5 +114,66 @@ export function applyCaptionsBurnIn(videoSegment: FilterGraphSegment, assPath: s
     startInputIndex: videoSegment.startInputIndex,
     filterLines: [...videoSegment.filterLines, filterLine],
     outputLabel,
+  };
+}
+
+/**
+ * Places each scene's narration at its `startOffsetSeconds` and mixes a
+ * ducked background bed underneath it — the audio half of the filter
+ * graph, built independently of `buildVideoGraph` but over the same
+ * `Timeline` so both stay in lock-step with the same offsets.
+ *
+ * Ducking uses `sidechaincompress`: the narration mix drives a compressor
+ * on the music bed, so the music actually quiets down while someone is
+ * speaking and recovers in the gaps, rather than sitting at one hand-tuned
+ * volume for the whole video. That is a real compressor, not a hand-rolled
+ * volume envelope — deterministic for a fixed pair of inputs, and it reads
+ * as ducking because it is ducking.
+ */
+export function buildAudioGraph(
+  timeline: Timeline,
+  music: MusicPlan,
+  musicPath: string | undefined,
+  startInputIndex = 0,
+): FilterGraphSegment {
+  const narrationPaths = timeline.scenes.map((scene) => scene.narrationPath);
+  const filterLines: string[] = [];
+
+  timeline.scenes.forEach((scene, index) => {
+    const inputIndex = startInputIndex + index;
+    const delayMs = Math.max(0, Math.round(scene.startOffsetSeconds * 1000));
+    filterLines.push(
+      `[${inputIndex}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=${delayMs}|${delayMs}[narr${index}]`,
+    );
+  });
+
+  const narrationLabels = timeline.scenes.map((_, index) => `[narr${index}]`).join("");
+  filterLines.push(`${narrationLabels}amix=inputs=${timeline.scenes.length}:duration=longest:normalize=0[narrmix]`);
+
+  if (!music.enabled) {
+    filterLines.push("[narrmix]anull[aout]");
+    return { inputPaths: narrationPaths, startInputIndex, filterLines, outputLabel: "aout" };
+  }
+
+  if (!musicPath) {
+    throw new Error("music is enabled but no music file path was given to buildAudioGraph");
+  }
+
+  const musicInputIndex = startInputIndex + timeline.scenes.length;
+  filterLines.push(
+    `[${musicInputIndex}:a]aformat=sample_rates=44100:channel_layouts=stereo,` +
+      `aloop=loop=-1:size=2e9,atrim=end=${timeline.totalDurationSeconds.toFixed(3)},asetpts=PTS-STARTPTS,` +
+      `volume=${music.volume}[musicbase]`,
+  );
+  filterLines.push(
+    "[musicbase][narrmix]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
+  );
+  filterLines.push("[narrmix][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]");
+
+  return {
+    inputPaths: [...narrationPaths, musicPath],
+    startInputIndex,
+    filterLines,
+    outputLabel: "aout",
   };
 }

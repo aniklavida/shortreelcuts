@@ -1,6 +1,6 @@
-import type { FormatPlan } from "@shortreelcuts/plan";
+import type { FormatPlan, MusicPlan } from "@shortreelcuts/plan";
 import { describe, expect, it } from "vitest";
-import { applyCaptionsBurnIn, buildVideoGraph, escapeFilterPath } from "./filtergraph.js";
+import { applyCaptionsBurnIn, buildAudioGraph, buildVideoGraph, escapeFilterPath } from "./filtergraph.js";
 import type { Timeline } from "./timeline.js";
 
 const FORMAT: FormatPlan = { width: 1080, height: 1920, fps: 30, container: "mp4" };
@@ -172,5 +172,86 @@ describe("applyCaptionsBurnIn", () => {
     expect(withCaptions.filterLines).toHaveLength(video.filterLines.length + 1);
     expect(withCaptions.filterLines.at(-1)).toBe("[scene0]subtitles=filename='/tmp/renders/beat.ass'[vout]");
     expect(withCaptions.inputPaths).toEqual(video.inputPaths);
+  });
+});
+
+const NO_MUSIC: MusicPlan = { enabled: false, volume: 0, reason: "test — no bed" };
+const WITH_MUSIC: MusicPlan = {
+  enabled: true,
+  provider: "stub",
+  trackId: "bed-1",
+  volume: 0.3,
+  reason: "test — a bed under the narration",
+};
+
+function twoSceneTimeline(): Timeline {
+  return timelineOf(
+    [
+      {
+        beatId: "b1",
+        footagePath: "/media/f1.mp4",
+        sourceInSeconds: 0,
+        sourceOutSeconds: 4,
+        narrationPath: "/media/n1.wav",
+        narrationDurationSeconds: 4,
+        sceneDurationSeconds: 4,
+        holdLastFrameSeconds: 0,
+        startOffsetSeconds: 0,
+      },
+      {
+        beatId: "b2",
+        footagePath: "/media/f2.mp4",
+        sourceInSeconds: 0,
+        sourceOutSeconds: 4,
+        narrationPath: "/media/n2.wav",
+        narrationDurationSeconds: 4,
+        sceneDurationSeconds: 4,
+        holdLastFrameSeconds: 0,
+        startOffsetSeconds: 3.5,
+      },
+    ],
+    0.5,
+  );
+}
+
+describe("buildAudioGraph", () => {
+  it("delays each scene's narration to its own start offset and mixes them", () => {
+    const graph = buildAudioGraph(twoSceneTimeline(), NO_MUSIC, undefined, 2);
+
+    expect(graph.inputPaths).toEqual(["/media/n1.wav", "/media/n2.wav"]);
+    expect(graph.filterLines[0]).toBe(
+      "[2:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=0|0[narr0]",
+    );
+    expect(graph.filterLines[1]).toBe(
+      "[3:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=3500|3500[narr1]",
+    );
+    expect(graph.filterLines[2]).toBe("[narr0][narr1]amix=inputs=2:duration=longest:normalize=0[narrmix]");
+  });
+
+  it("passes the narration mix straight through as aout when music is disabled", () => {
+    const graph = buildAudioGraph(twoSceneTimeline(), NO_MUSIC, undefined);
+    expect(graph.outputLabel).toBe("aout");
+    expect(graph.filterLines.at(-1)).toBe("[narrmix]anull[aout]");
+    expect(graph.inputPaths).toEqual(["/media/n1.wav", "/media/n2.wav"]);
+  });
+
+  it("loops and ducks a music bed under the narration when music is enabled", () => {
+    const graph = buildAudioGraph(twoSceneTimeline(), WITH_MUSIC, "/media/bed.mp3", 0);
+
+    expect(graph.inputPaths).toEqual(["/media/n1.wav", "/media/n2.wav", "/media/bed.mp3"]);
+    const musicLine = graph.filterLines.find((line) => line.includes("musicbase"));
+    expect(musicLine).toContain("[2:a]aformat=sample_rates=44100:channel_layouts=stereo");
+    expect(musicLine).toContain("aloop=loop=-1:size=2e9");
+    expect(musicLine).toContain("atrim=end=7.500");
+    expect(musicLine).toContain("volume=0.3");
+    expect(graph.filterLines).toContain(
+      "[musicbase][narrmix]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250:makeup=1[musicducked]",
+    );
+    expect(graph.filterLines.at(-1)).toBe("[narrmix][musicducked]amix=inputs=2:duration=longest:normalize=0[aout]");
+    expect(graph.outputLabel).toBe("aout");
+  });
+
+  it("throws when music is enabled but no music path was resolved", () => {
+    expect(() => buildAudioGraph(twoSceneTimeline(), WITH_MUSIC, undefined)).toThrow(/no music file path/);
   });
 });
