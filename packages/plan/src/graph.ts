@@ -97,10 +97,10 @@ function prefix(pattern: string, owner: Owner): PrefixRule {
  * `*` matches exactly one path segment (e.g. a beat id, or an array index).
  *
  * These exist because "footage" and "script" are not owned by a single
- * stage end to end - the invalidation table in the card that produced this
- * file requires that swapping a clip (footage.<id>.assetId/in/out) costs
- * only a re-compose, while a new search term (script.beats.<i>.search)
- * costs a re-fetch, even though both live under a beat.
+ * stage end to end - the re-run table in `docs/SPEC.md` §6 requires that
+ * swapping a clip (footage.<id>.assetId/in/out) costs only a re-compose,
+ * while a new search term (script.beats.<i>.search) costs a re-fetch,
+ * even though both live under a beat.
  */
 const FIELD_RULES: readonly Rule[] = [
   // A hand-edited script line is spoken text - it changes the voiceover,

@@ -2,15 +2,15 @@
  * Content-addressed artefact keys.
  *
  * `invalidate()` in graph.ts answers "given what changed, which stages
- * must re-run" from a diff. This file answers a complementary question a
- * stage runner (not built by this card) needs before it recomputes
- * anything: "have I already produced this stage's output for exactly
- * these inputs?" If two plans agree on everything a stage depends on, that
- * stage's artefact key is identical, and its previous output can be
- * reused instead of recomputed.
+ * must re-run" from a diff. This file answers a complementary question,
+ * for a stage runner that is not built yet: "have I already produced
+ * this stage's output for exactly these inputs?" If two plans agree on
+ * everything a stage depends on, that stage's artefact key is identical,
+ * and its previous output can be reused instead of recomputed.
  *
- * No cache or store is implemented here. This is the pure key function -
- * card 11 is where something is actually kept keyed by it.
+ * No cache or store is implemented here, and nothing in this repository
+ * keeps stage outputs keyed by one yet. This is the pure key function on
+ * its own; the store that would make reuse real is not built.
  */
 import { createHash } from "node:crypto";
 import { STAGES, upstreamOf, ownerOf, type Stage } from "./graph.js";

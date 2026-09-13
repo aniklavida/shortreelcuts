@@ -1,8 +1,10 @@
 /**
- * The flagship test for this card: given a real, fully-decided plan and a
- * realistic edit to it — not a hand-written path string — invalidate()
- * must return exactly the stages the product's invalidation table says it
- * should, no more and no less.
+ * The central test for this package: every other test here feeds
+ * invalidate() hand-written path strings, which proves the rules but not
+ * that they add up to the product's promise. This one starts where a real
+ * caller starts — a fully-decided plan and a realistic edit to it — and
+ * requires invalidate() to return exactly the stages the re-run table in
+ * `docs/SPEC.md` §6 says it should, no more and no less.
  *
  * Each case below edits a full Plan object the way a user's override would
  * (through the decision sheet or the plan editor), diffs it against the

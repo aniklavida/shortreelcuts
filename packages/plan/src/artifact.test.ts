@@ -1,10 +1,12 @@
 /**
- * Determinism, proved at the level this card can prove it at: there is no
- * renderer yet, so "two renders of one plan produce identical output" is
- * demonstrated as "two content-addressed keys computed from one plan, or
- * from two structurally-identical plans, are byte-identical" — which is
- * exactly the property a real renderer would need to hold to make
- * byte-identical re-rendering true once it exists.
+ * Determinism, at the only level this package can prove it. `@shortreelcuts/plan`
+ * holds no renderer, so what is covered here is "two content-addressed keys
+ * computed from one plan, or from two structurally-identical plans, are
+ * byte-identical" — exactly the property a renderer needs in order to make
+ * "re-rendering the same plan twice produces byte-identical output"
+ * (`docs/SPEC.md` §17) true. What is *not* covered here is the encoder's own
+ * determinism; that is proved end to end against real `ffmpeg` in
+ * `@shortreelcuts/render`'s own test.
  */
 import { describe, expect, it } from "vitest";
 import { contentKeyFor, contentKeysFor, stageInputPaths } from "./artifact.js";
