@@ -1,8 +1,8 @@
 /**
  * The stage dependency graph.
  *
- * This is, per docs/DECISIONS and the card that produced this file, the
- * most load-bearing code in the repository: given the plan paths a change
+ * The most load-bearing code in the repository, because the dependency
+ * graph is the feature (`docs/SPEC.md` §6): given the plan paths a change
  * touched, `invalidate` returns exactly the stages that must re-run - and
  * no others. Getting this wrong either re-runs too much (an unexpected
  * wait and bill) or too little (a silently wrong video).
