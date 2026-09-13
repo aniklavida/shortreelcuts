@@ -1,9 +1,10 @@
 /**
  * The footage stage — stubbed.
  *
- * Neither footage provider named in SPEC.md §5.2 is implemented, and the
- * decision between them is still open. This stub proposes several
- * candidate clips per beat and picks one, so the sheet has something
+ * Neither footage source SPEC.md §13 leaves open — a stock library, or
+ * generated footage — is implemented, and the decision between them is
+ * still open. This stub proposes several candidate clips per beat and
+ * picks one, so the sheet has something
  * concrete to show for "the four clips it did not pick" — the card's own
  * example of what turns "trust me" into a decision someone can disagree
  * with.

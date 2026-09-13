@@ -5,7 +5,7 @@
  *
  * This is the write side of the addressing scheme that package's
  * `paths.ts` only reads. An override control never edits a plan in
- * place — see SPEC.md §10 rule 5, "nothing is destroyed" — it produces a
+ * place — see SPEC.md §9 rule 5, "nothing is destroyed" — it produces a
  * new object, which `diffPaths` then compares against the one it came
  * from.
  */

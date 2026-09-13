@@ -1,10 +1,10 @@
 /**
  * The script stage — stubbed.
  *
- * No language model is wired in (SPEC.md §5.1 is still open, and no
- * provider is implemented regardless of how it is answered). This stub
- * exists only so the decision sheet has a script decision to render and
- * invalidate — a real `ScriptProvider` (SPEC.md §7) drops in later behind
+ * No language model is wired in — SPEC.md §13 leaves open whether v1 uses
+ * a hosted key you supply or a model on your own hardware, and no provider
+ * is implemented regardless of how that lands. This stub exists only so
+ * the decision sheet has a script decision to render and invalidate — a real `ScriptProvider` (SPEC.md §7) drops in later behind
  * the same `StageRunners.script` signature.
  *
  * It still follows the one rule that matters for the sheet: it proposes

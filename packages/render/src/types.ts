@@ -1,7 +1,7 @@
 /**
  * The compose stage's input and output contract.
  *
- * SPEC.md §8 sketches the eventual adapter interface as
+ * SPEC.md §7 sketches the eventual adapter interface as
  * `render(plan: Plan, media: ResolvedMedia): Promise<VideoFile>`. The
  * `Renderer` adapter itself, and the `MediaStore` that would produce a
  * `ResolvedMedia` from a plan's `footage`/`voice`/`music` decisions, are a

@@ -6,7 +6,7 @@ import { makeSheetFixturePlan } from "./testing/fixtures.js";
 const noCandidates = () => undefined;
 
 describe("buildDecisionGroups", () => {
-  it("covers every plan field that carries a decision — SPEC.md §18's acceptance criterion", () => {
+  it("covers every plan field that carries a decision — SPEC.md §17's acceptance criterion", () => {
     const plan = makeSheetFixturePlan();
     const groups = buildDecisionGroups(plan, noCandidates);
 

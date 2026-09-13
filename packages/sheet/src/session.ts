@@ -103,7 +103,7 @@ export class ProjectSession {
     }
   }
 
-  /** Reverts the visible plan to an earlier version without discarding history — SPEC.md §10 rule 5, "nothing is destroyed". */
+  /** Reverts the visible plan to an earlier version without discarding history — SPEC.md §9 rule 5, "nothing is destroyed". */
   revertTo(index: number): Plan {
     const target = this.versions[index];
     if (!target) throw new Error(`no version at index ${index}`);

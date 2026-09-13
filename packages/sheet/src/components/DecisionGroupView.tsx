@@ -1,8 +1,8 @@
 /**
  * One collapsible group — "▸ Voice   Warm female, 1.0×   2 decisions"
  * collapsed, its rows expanded. Collapsed is the whole five-line summary
- * SPEC.md §9 describes: what a returning user reads in two seconds to
- * confirm nothing weird happened.
+ * SPEC.md §8 describes for Screen 2: what a returning user reads in two
+ * seconds to confirm nothing weird happened.
  */
 import { useState } from "react";
 import type { CostEstimate } from "../cost.js";

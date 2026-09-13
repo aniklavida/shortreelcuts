@@ -1,9 +1,9 @@
 /**
  * Screen 3: the raw plan, editable, with a re-render button. For the
  * power user, for the bug report, and as a promise that nothing is
- * hidden — SPEC.md §9. It is the last screen for a reason: it is where
- * someone who already knows exactly what they want goes directly, not
- * where anyone is steered.
+ * hidden — SPEC.md §8, Screen 3. It is the last screen for a reason: it
+ * is where someone who already knows exactly what they want goes
+ * directly, not where anyone is steered.
  */
 import { useState } from "react";
 
