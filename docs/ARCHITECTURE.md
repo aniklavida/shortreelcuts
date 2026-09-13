@@ -63,7 +63,12 @@ This is the mechanism the whole product rests on. A bug here either re-runs too 
 
 ## Providers
 
-Each stage's external dependency sits behind an interface: script, voice, footage, alignment, rendering, and a media store. **v1 ships one implementation of each.** The interfaces exist from the first commit anyway, because retrofitting a seam after five stages are written is the expensive version of the same decision.
+Each stage's external dependency sits behind an interface: script, voice, footage, alignment, rendering, and a media store. The interfaces exist from the first commit, because retrofitting a seam after five stages are written is the expensive version of the same decision.
+
+Planned for v1.0, not implemented:
+
+- **Script and voice use whichever model the user connects** — a hosted API with their own key, an agent subscription connected by signing in, or a model on their own hardware. The interface is provider-neutral, so the pipeline cannot tell which. A local model runs as a separate process.
+- **Footage is chosen per scene from three sources**: stock clips from a library the user has a key for, AI-generated video from a generation provider they connect, and motion graphics written as code by the connected model and rendered to video on the worker. A plan can mix all three.
 
 Three boundaries, enforced by tests:
 
@@ -101,4 +106,5 @@ Compare, revert and branch fall out of that, and so does the willingness to try 
 - **The plan document is extra machinery** compared with passing values between functions. It is the price of every decision being addressable, and without it the product is a form with a nicer font.
 - **Determinism constrains the stages.** A stage may not quietly re-roll; it records and re-uses. That is stricter than it sounds in practice and has to hold in every stage.
 - **The worker must be resumable**, so every stage's output is persisted before the next begins. More writes, and a render that survives a restart.
-- **One provider per slot means a provider outage is an outage.** Accepted at v1 — the interface is what makes a second one cheap when a user shows it is needed.
+- **An external provider's outage is an outage for the stages that use it.** Accepted at v1. The user can connect a different model, or pick a different footage source for a scene, without the pipeline changing.
+- **Motion-graphics code is written by a model, so it is untrusted input.** Rendering it has to be isolated from the network and the filesystem, and deterministic enough to keep re-renders byte-identical.

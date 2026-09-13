@@ -124,7 +124,7 @@ packages/providers/
 └── render/         ffmpeg
 ```
 
-One folder per slot, one implementation inside each at v1 — **and the folder is plural from the first commit**, because a slot with a folder is a slot somebody can add to without asking permission.
+One folder per slot — **and the folder is plural from the first commit**, because a slot with a folder is a slot somebody can add to without asking permission. The footage slot is planned to hold three sources at v1 (stock, generated video, motion graphics written as code), and script and voice a provider-neutral model connection covering hosted and local models.
 
 Three rules, enforced by tests:
 

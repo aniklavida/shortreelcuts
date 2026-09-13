@@ -8,9 +8,9 @@ There is no disposable early public release. Nothing below is done.
 
 Positioning, scope, the pipeline shape, the adapter interfaces, the folder structure and the dependency set are agreed and recorded.
 
-Two questions remain genuinely open and are called out in the specification: whether v1 uses a hosted key or a local model, and whether footage comes from a stock library or is generated. Both change what self-hosting costs.
+The two questions that change what self-hosting costs are answered, and the specification records them: **models** are whichever the user chooses, hosted or on their own hardware, both first-class at v1; **footage** comes per scene from stock clips, AI-generated video or motion graphics written as code, each with the user's own key.
 
-**Done:** no unresolved product contradiction remains, and both open questions are answered.
+**Done:** no unresolved product contradiction remains, and both questions are answered.
 
 ## 1 · The plan, and the graph
 
@@ -38,7 +38,7 @@ The three screens. The sheet, the override controls resolved from capability dec
 
 ## 4 · The five stages, end to end
 
-Script, voice, footage and alignment, each behind its interface, with one provider each. The worker, the queue, resumable jobs, streaming progress.
+Script, voice, footage and alignment, each behind its interface — script and voice through the model the user connects, footage from the three sources the specification names. The worker, the queue, resumable jobs, streaming progress.
 
 **Done:** a prompt alone produces a video, and every field of the resulting plan appears on the sheet with a reason recorded by the stage that made it.
 
@@ -62,4 +62,4 @@ The hardest stage, given its own step because it is the acceptance criterion mos
 
 ## After v1.0
 
-Maintain compatibility. Fix reproducible bugs and security issues. Add a second provider to a slot when a user demonstrates the need — not when one exists.
+Maintain compatibility. Fix reproducible bugs and security issues. Add a new integration to a slot when a user demonstrates the need — not when one exists.

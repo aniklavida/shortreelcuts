@@ -75,13 +75,19 @@ Postgres, the web app, the worker. Your projects, plans and finished videos live
 
 Rendering is `ffmpeg`, invoked as a binary on your own hardware.
 
-**What leaves the machine depends on which script, voice and footage providers are configured, and the v1 defaults are not chosen yet** — see [self-hosting and cost](docs/SPEC.md#13--self-hosting-and-cost). Whichever way they land, this documentation will name every stage that makes an external call and state what a video costs to produce, before anyone installs it. Someone finding out about a bill after installing is the worst outcome this project could produce.
+**Your app, your data, your key.** What leaves the machine depends on the model and footage sources you connect — see [self-hosting and cost](docs/SPEC.md#13--self-hosting-and-cost). This documentation will name every stage that makes an external call and state what a video costs to produce, before anyone installs it. Someone finding out about a bill after installing is the worst outcome this project could produce.
 
-## One provider per slot
+## Your model, your footage
 
-Each stage of the pipeline sits behind an adapter interface — script, voice, footage, alignment, rendering. **v1 ships exactly one implementation of each.**
+*Planned for v1.0 — none of this is implemented yet.*
 
-That is a decision, not a gap. A dozen interchangeable providers per slot is a dozen surfaces that can break, a dozen sets of credentials to document, and a support matrix nobody can test. The interfaces make adding one cheap; a second provider enters a slot when someone demonstrates a need for it.
+- **Any model you choose.** Bring your own API key, connect an agent subscription you already pay for by signing in, or run a model on your own hardware. All three are first-class at v1. Cost and output quality depend on the model you connect.
+- **Footage chosen per scene, from three sources**, mixed freely in one video, each with your own key:
+  - **Motion graphics written as code** — the lead source. The model writes the animation; ShortReelCuts renders it to video on your machine. Costs the model's tokens plus local render time.
+  - **Stock clips** from Pexels or Pixabay.
+  - **AI-generated video** from a generation model you connect, with its cost shown before the scene renders.
+
+Each stage of the pipeline sits behind an adapter interface — script, voice, footage, alignment, rendering — so a model on your own hardware and a hosted one are both ordinary implementations rather than one being a later port. Beyond that, breadth is a cost: a dozen integrations per slot is a dozen surfaces that can break and a support matrix nobody can test. A new integration enters a slot when someone demonstrates a need for it.
 
 ## Output
 
