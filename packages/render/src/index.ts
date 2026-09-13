@@ -2,3 +2,5 @@ export * from "./types.js";
 export * from "./binaries.js";
 export * from "./process.js";
 export * from "./probe.js";
+export * from "./timeline.js";
+export * from "./filtergraph.js";
