@@ -11,7 +11,8 @@
  * at a build with libass if the system default lacks it — see
  * `binaries.ts`.
  */
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -99,6 +100,32 @@ describe.skipIf(!RUN_E2E)("render() against the hand-written plan fixture", () =
       expect(cueCount).toBe(9);
       expect(srt).toContain("Bengal's tea gardens");
       expect(srt).toContain("00:00:00,000 -->");
+    },
+    60_000,
+  );
+
+  it(
+    "renders the same plan to byte-identical output twice, media regenerated from scratch each time",
+    async () => {
+      // DECISIONS.md / SPEC.md §18: "re-rendering the same plan twice
+      // produces byte-identical output" — not a given for free with a
+      // real video encoder. run.ts pins ffmpeg to bitexact, single-threaded
+      // encoding for exactly this; this test is what proves that choice
+      // actually holds, end to end, rather than trusting the flags exist.
+      const plan = await loadHandWrittenPlan();
+      const hashes: string[] = [];
+
+      for (const label of ["first", "second"]) {
+        const runDir = join(workDir, label);
+        await mkdir(runDir, { recursive: true });
+        const media = await synthesizeFixtureMedia(runDir, ffmpegPath);
+        const runOutputPath = join(runDir, "out.mp4");
+        await render(plan, media, { outputPath: runOutputPath, ffmpegPath, ffprobePath, transitionSeconds: 0.4 });
+        const bytes = await readFile(runOutputPath);
+        hashes.push(createHash("sha256").update(bytes).digest("hex"));
+      }
+
+      expect(hashes[0]).toBe(hashes[1]);
     },
     60_000,
   );

@@ -80,6 +80,24 @@ export async function render(plan: Plan, media: ResolvedMedia, options: RenderOp
   const videoBitrate = options.videoBitrate ?? DEFAULT_VIDEO_BITRATE;
 
   const args = [
+    // DECISIONS.md / SPEC.md §18: re-rendering the same plan twice must
+    // produce byte-identical output. `bitexact` drops the muxer's
+    // wall-clock creation/modification timestamps and encoder version
+    // strings; pinning every filter and encoder to one thread removes the
+    // floating-point non-determinism multi-threaded frame processing can
+    // otherwise introduce (verified empirically — without these flags,
+    // two renders of the same fixture differed by a few bytes deep in the
+    // audio track; with them, sha256 matches across repeated runs).
+    "-fflags",
+    "+bitexact",
+    "-flags:v",
+    "+bitexact",
+    "-flags:a",
+    "+bitexact",
+    "-filter_complex_threads",
+    "1",
+    "-filter_threads",
+    "1",
     ...inputArgs,
     "-filter_complex",
     filterComplex,
@@ -91,6 +109,8 @@ export async function render(plan: Plan, media: ResolvedMedia, options: RenderOp
     timeline.totalDurationSeconds.toFixed(3),
     "-c:v",
     "libx264",
+    "-threads",
+    "1",
     "-pix_fmt",
     "yuv420p",
     "-profile:v",
@@ -103,6 +123,8 @@ export async function render(plan: Plan, media: ResolvedMedia, options: RenderOp
     String(plan.format.fps),
     "-c:a",
     "aac",
+    "-threads",
+    "1",
     "-b:a",
     "192k",
     "-ar",

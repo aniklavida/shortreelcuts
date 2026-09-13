@@ -43,8 +43,24 @@ const BEAT_MEDIA = {
 
 const MUSIC_BED = { toneHz: 110, loopSeconds: 2.0 };
 
+// Pinned to bitexact/single-threaded for the same reason run.ts's own
+// ffmpeg invocation is: so re-running the fixture generator produces the
+// same bytes, which is what lets a determinism check compare two full
+// renders end to end rather than only the compose step in isolation.
+const DETERMINISTIC_FLAGS = [
+  "-fflags",
+  "+bitexact",
+  "-flags:v",
+  "+bitexact",
+  "-flags:a",
+  "+bitexact",
+  "-filter_threads",
+  "1",
+];
+
 async function makeColorClip(path: string, colorHex: string, durationSeconds: number, ffmpegPath: string): Promise<void> {
   await runFfmpeg(ffmpegPath, [
+    ...DETERMINISTIC_FLAGS,
     "-f",
     "lavfi",
     "-i",
@@ -53,6 +69,8 @@ async function makeColorClip(path: string, colorHex: string, durationSeconds: nu
     "yuv420p",
     "-c:v",
     "libx264",
+    "-threads",
+    "1",
     "-preset",
     "ultrafast",
     path,
@@ -61,6 +79,7 @@ async function makeColorClip(path: string, colorHex: string, durationSeconds: nu
 
 async function makeToneClip(path: string, frequencyHz: number, durationSeconds: number, ffmpegPath: string): Promise<void> {
   await runFfmpeg(ffmpegPath, [
+    ...DETERMINISTIC_FLAGS,
     "-f",
     "lavfi",
     "-i",
