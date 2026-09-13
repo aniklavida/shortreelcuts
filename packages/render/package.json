@@ -1,0 +1,19 @@
+{
+  "name": "@shortreelcuts/render",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The ffmpeg timeline compiler: turns a validated plan and its resolved media into an MP4. Spawns ffmpeg as a binary — never linked — so its licence never reaches this code or a user's.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shortreelcuts/plan": "^0.1.0",
+    "execa": "^10.0.1"
+  }
+}
