@@ -15,7 +15,9 @@ import {
 } from "./openAiCompatible.js";
 
 const BRIEF: Brief = { prompt: "why the ocean is salty", targetSeconds: 20, tone: "calm" };
-const SECRET_KEY = "sk-test-do-not-leak-4f9c2";
+// Deliberately not shaped like a real provider key prefix (this repository's own CI scans for
+// those, correctly) — a fake, obviously-a-test credential is enough to prove the leak check.
+const SECRET_KEY = "TEST-FAKE-CREDENTIAL-DO-NOT-LEAK-4f9c2";
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
