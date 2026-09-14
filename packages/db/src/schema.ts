@@ -1,0 +1,42 @@
+/**
+ * The `jobs` table — the durable state a render needs to survive a crash
+ * or a browser refresh (`docs/SPEC.md` §10: "a render is resumable from
+ * its last completed stage. Closing the browser does not cancel a job.").
+ *
+ * A row is written after every stage completes, not only at the end, so
+ * `completedStages` and `plan` always reflect exactly what has actually
+ * run — never what a worker merely intended to run. That is what makes
+ * `resumePendingJobs` (in the worker) correct after an unclean restart:
+ * it trusts this table, not an in-memory record of progress.
+ *
+ * `plan` holds the plan document as it stands so far. Before the first
+ * stage completes it is `null`; after `compose` it validates as a
+ * complete `Plan` (`@shortreelcuts/plan`'s `parsePlan`), but every row in
+ * between is a partial document by construction, so this column is typed
+ * as opaque JSON here and validated by the reader, not by the schema.
+ */
+import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+/** Mirrors `@shortreelcuts/plan`'s `Stage` union without importing zod into the schema module. */
+export const JOB_STATUSES = ["pending", "running", "done", "failed"] as const;
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
+export const jobs = pgTable("jobs", {
+  id: text("id").primaryKey(),
+  status: text("status").notNull().default("pending"),
+  /** The `GenerateInput` this job was created from — `{ brief, seed }` — kept so the `script` stage can run even from a completely fresh job. */
+  input: jsonb("input").notNull(),
+  /** The plan document as it stands after the most recently completed stage. `null` until `script` completes. */
+  plan: jsonb("plan"),
+  /** Stage ids, in the order they completed. The worker's resume logic re-runs only stages not in this list. */
+  completedStages: jsonb("completed_stages").notNull().default([]),
+  /** Set once `compose` completes. */
+  videoPath: text("video_path"),
+  /** Set if a stage throws. The job stays resumable — fixing the cause and re-enqueueing tries the same completed-stages set again. */
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type JobRow = typeof jobs.$inferSelect;
+export type NewJobRow = typeof jobs.$inferInsert;

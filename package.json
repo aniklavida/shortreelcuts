@@ -6,12 +6,14 @@
   "description": "A self-hosted web app that turns a prompt into a short vertical video, and shows every decision it made.",
   "license": "MIT",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
-    "test:e2e": "SHORTREELCUTS_RENDER_E2E=1 vitest run packages/render/src/testing/render.e2e.test.ts packages/sheet/src/session.e2e.test.ts"
+    "test:e2e": "SHORTREELCUTS_RENDER_E2E=1 vitest run packages/render/src/testing/render.e2e.test.ts packages/sheet/src/session.e2e.test.ts",
+    "test:worker": "SHORTREELCUTS_WORKER_E2E=1 vitest run packages/db/src/jobs.e2e.test.ts apps/worker/src/run.e2e.test.ts apps/worker/src/resume.e2e.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
