@@ -18,12 +18,7 @@ import { join } from "node:path";
 import { invalidate } from "@shortreelcuts/plan";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ProjectSession } from "./session.js";
-import { runAlign } from "./stages/align.js";
-import { runCompose } from "./stages/compose.js";
-import { runFootage } from "./stages/footage.js";
-import { runScript } from "./stages/script.js";
-import { runVoice } from "./stages/voice.js";
-import type { StageRunners } from "./stages/types.js";
+import { runAlign, runCompose, runFootage, runScript, runVoice, type StageRunners } from "@shortreelcuts/stages";
 
 const RUN_E2E = process.env["SHORTREELCUTS_RENDER_E2E"] === "1";
 

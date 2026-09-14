@@ -7,13 +7,9 @@
  *
  * `session.e2e.test.ts` is the one place `compose` is the real thing.
  */
+import type { ComposeRunResult, StageRunners } from "@shortreelcuts/stages";
+import { runAlign, runFootage, runScript, runVoice, withComposeDefaults } from "@shortreelcuts/stages";
 import { vi, type Mock } from "vitest";
-import { runAlign } from "../stages/align.js";
-import { withComposeDefaults } from "../stages/composeDefaults.js";
-import { runFootage } from "../stages/footage.js";
-import { runScript } from "../stages/script.js";
-import type { ComposeRunResult, StageRunners } from "../stages/types.js";
-import { runVoice } from "../stages/voice.js";
 
 function fakeVideo(path: string) {
   return { path, captionsPath: `${path}.srt`, width: 1080, height: 1920, fps: 30, durationSeconds: 12 };

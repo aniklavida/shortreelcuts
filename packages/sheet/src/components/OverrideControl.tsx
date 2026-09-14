@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 import type { CostEstimate } from "../cost.js";
 import type { OverrideControl as OverrideControlSpec } from "../decisions.js";
 import type { Edit } from "../session.js";
-import type { DecisionCandidate } from "../stages/types.js";
+import type { DecisionCandidate } from "@shortreelcuts/stages";
 import { CostHint } from "./CostHint.js";
 
 export interface OverrideControlProps {

@@ -4,7 +4,7 @@
  * is screen 3 and reached only by a deliberate tab, never by default.
  */
 import { useState } from "react";
-import type { StageRunners } from "../stages/types.js";
+import type { StageRunners } from "@shortreelcuts/stages";
 import { DecisionSheet } from "./DecisionSheet.js";
 import { PlanEditorScreen } from "./PlanEditorScreen.js";
 import { PromptScreen } from "./PromptScreen.js";

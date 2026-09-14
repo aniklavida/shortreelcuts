@@ -7,12 +7,8 @@
  * import `vitest`'s mocking helpers the way `testing/fakeRunners.ts`
  * (test-only) does.
  */
-import { runAlign } from "../src/stages/align.js";
-import { withComposeDefaults } from "../src/stages/composeDefaults.js";
-import { runFootage } from "../src/stages/footage.js";
-import { runScript } from "../src/stages/script.js";
-import type { ComposeRunResult, StageRunners } from "../src/stages/types.js";
-import { runVoice } from "../src/stages/voice.js";
+import { runAlign, runFootage, runScript, runVoice, withComposeDefaults } from "@shortreelcuts/stages";
+import type { ComposeRunResult, StageRunners } from "@shortreelcuts/stages";
 
 function fakeVideo(path: string) {
   return { path, captionsPath: `${path}.srt`, width: 1080, height: 1920, fps: 30, durationSeconds: 12 };

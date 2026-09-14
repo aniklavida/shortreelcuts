@@ -12,7 +12,7 @@ import { diffPaths, invalidate, leavesOf, parsePlan, type Brief, type Plan, type
 import type { VideoFile } from "@shortreelcuts/render";
 import { estimateRerun, type CostEstimate } from "./cost.js";
 import { getAtPath, nearestReasonPath, setAllAtPaths } from "./patch.js";
-import type { DecisionCandidate, StageRunners } from "./stages/types.js";
+import type { DecisionCandidate, StageRunners } from "@shortreelcuts/stages";
 
 export interface SessionEvents {
   /** Fired once per override, before any stage in the returned set has started. This ordering is load-bearing — SPEC.md §9 rule 3, the cost of a change is shown before the change. */

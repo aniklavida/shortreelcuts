@@ -10,7 +10,7 @@ import type { Plan, Stage } from "@shortreelcuts/plan";
 import { buildDecisionGroups, type DecisionGroup } from "../decisions.js";
 import type { CostEstimate } from "../cost.js";
 import { ProjectSession, type Edit, type GenerateInput } from "../session.js";
-import type { StageRunners } from "../stages/types.js";
+import type { StageRunners } from "@shortreelcuts/stages";
 
 export type StageStatus = "pending" | "running" | "done";
 

@@ -19,8 +19,7 @@
  * the reasons attached to each).
  */
 import { ownerOf, type Plan, type Stage } from "@shortreelcuts/plan";
-import { STUB_VOICES } from "./stages/voice.js";
-import type { DecisionCandidate } from "./stages/types.js";
+import { STUB_VOICES, type DecisionCandidate } from "@shortreelcuts/stages";
 
 /**
  * Four kinds, not five: a "select" backed by `candidates` (see

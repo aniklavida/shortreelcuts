@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeSheetFixturePlan } from "../testing/fixtures.js";
+import { makeSheetFixturePlan } from "./testing/fixtures.js";
 import { runFootage } from "./footage.js";
 
 describe("runFootage (stub)", () => {
