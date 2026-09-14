@@ -1,13 +1,14 @@
 /**
  * The voice stage — stubbed.
  *
- * No TTS provider exists yet: which one v1 ships against is still open
- * (`docs/SPEC.md` §13), and `edge-tts` is already ruled out on licence and
- * because it leans on a third party's undocumented endpoint (§14).
- * `STUB_VOICES` stands in for what a real `VoiceProvider.voices()`
- * capability call would return (`docs/SPEC.md` §7) —
- * it is what the sheet's voice `OverrideControl` is resolved from, so
- * swapping this for a real provider later changes zero UI code.
+ * No TTS provider exists yet. `docs/SPEC.md` §11 settles which one it will
+ * be: whichever speech model the user connects, hosted with their own key
+ * or run on their own hardware — a choice, not a fixed vendor. `edge-tts`
+ * is already ruled out on licence and because it leans on a third party's
+ * undocumented endpoint (§14). `STUB_VOICES` stands in for what a real
+ * `VoiceProvider.voices()` capability call would return (`docs/SPEC.md`
+ * §7) — it is what the sheet's voice `OverrideControl` is resolved from,
+ * so swapping this for a real provider later changes zero UI code.
  */
 import type { Plan, VoicePlan } from "@shortreelcuts/plan";
 import { makeRng, pick } from "./rng.js";

@@ -3,9 +3,10 @@
  * `invalidate()` returns — before any stage runs.
  *
  * `docs/SPEC.md` §6's table is explicitly "a target for v1, not a measured
- * result", because no real provider exists to measure yet — which script
- * and voice providers v1 ships against is still open (§13). These numbers
- * are the same kind of placeholder: a deterministic, disclosed heuristic
+ * result", because no real provider exists to measure yet — §11 settles
+ * *which* model the script and voice stages will run against (whatever
+ * the user connects — hosted key, subscription, or local), not what it
+ * costs in wall-clock time. These numbers are the same kind of placeholder: a deterministic, disclosed heuristic
  * good enough to prove the *mechanism* — a cost shown before a change is
  * applied — not a benchmark. Recalibrate this table, not the mechanism,
  * once real stages exist.

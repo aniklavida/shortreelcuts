@@ -1,11 +1,14 @@
 /**
  * The script stage — stubbed.
  *
- * No language model is wired in — SPEC.md §13 leaves open whether v1 uses
- * a hosted key you supply or a model on your own hardware, and no provider
- * is implemented regardless of how that lands. This stub exists only so
- * the decision sheet has a script decision to render and invalidate — a real `ScriptProvider` (SPEC.md §7) drops in later behind
- * the same `StageRunners.script` signature.
+ * No language model is wired in yet. `docs/SPEC.md` §11 settles which one
+ * will be: whichever the user connects — a hosted API with their own key,
+ * an agent subscription of theirs, or a model on their own hardware — all
+ * first-class and reached through one neutral interface, not a provider
+ * this project picks. This stub exists only so the decision sheet has a
+ * script decision to render and invalidate — a real `ScriptProvider`
+ * (`docs/SPEC.md` §7) drops in later behind the same `StageRunners.script`
+ * signature.
  *
  * It still follows the one rule that matters for the sheet: it proposes
  * more than one hook, picks one, and records why — never a silent choice.

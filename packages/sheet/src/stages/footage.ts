@@ -1,12 +1,13 @@
 /**
  * The footage stage — stubbed.
  *
- * Neither footage source SPEC.md §13 leaves open — a stock library, or
- * generated footage — is implemented, and the decision between them is
- * still open. This stub proposes several candidate clips per beat and
- * picks one, so the sheet has something concrete to show for the
- * candidates it did not pick (SPEC.md §8), which is what turns "trust me"
- * into a decision someone can disagree with.
+ * `docs/SPEC.md` §11 settles the footage sources — stock clips, AI-generated
+ * video, and motion graphics written as code, chosen per scene and mixable
+ * in one video — but none of the three is implemented yet. This stub
+ * proposes several candidate clips per beat and picks one, so the sheet
+ * has something concrete to show for the candidates it did not pick
+ * (`docs/SPEC.md` §8), which is what turns "trust me" into a decision
+ * someone can disagree with.
  */
 import type { FootageClip, FootagePlan, Plan } from "@shortreelcuts/plan";
 import { makeRng } from "./rng.js";
