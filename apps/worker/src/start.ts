@@ -6,10 +6,14 @@
  * allowed to know a database connection string exists.
  *
  * Not wired into a container image or a compose file here — that is the
- * self-hosting packaging this repository has not built yet. Running this
- * script directly (`node --experimental-strip-types src/start.ts`, or any
- * TypeScript runner) against a real Postgres is the whole of what it
- * needs.
+ * self-hosting packaging this repository has not built yet, and no build
+ * step exists for any package in this repository yet either, so this
+ * file is not runnable by a plain `node` invocation the way it is
+ * written (its sibling modules import each other by their eventual
+ * compiled `.js` names, which `NodeNext` module resolution requires but
+ * which do not exist as files yet). It runs correctly today only through
+ * a TypeScript-aware runner or bundler — the same way every test in this
+ * workspace already runs it, via `vitest`.
  */
 import { connect, runMigrations } from "@shortreelcuts/db";
 import { resumeIncompleteJobs } from "./resume.js";
@@ -31,7 +35,7 @@ async function main(): Promise<void> {
 
   const resumed = await resumeIncompleteJobs(db, workDir, runners);
   if (resumed.length > 0) {
-      console.log(`[worker] resumed ${resumed.length} incomplete job(s) from the last run`);
+    console.log(`[worker] resumed ${resumed.length} incomplete job(s) from the last run`);
   }
 
   const boss = await startQueue(connectionString);
@@ -42,7 +46,7 @@ async function main(): Promise<void> {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err) => {
-      console.error("[worker] fatal", err);
+    console.error("[worker] fatal", err);
     process.exit(1);
   });
 }
