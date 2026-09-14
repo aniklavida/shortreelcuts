@@ -1,0 +1,19 @@
+{
+  "name": "@shortreelcuts/providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Adapters behind the script and voice slots — one provider-neutral interface, so a hosted key, an OAuth-reached subscription, or a model on the self-hoster's own hardware are interchangeable implementations of it (docs/SPEC.md §5.1, §7).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shortreelcuts/plan": "^0.1.0",
+    "zod": "^4.6.4"
+  }
+}
