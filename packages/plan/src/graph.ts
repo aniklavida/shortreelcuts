@@ -10,6 +10,7 @@
  * No stage is implemented here or anywhere yet. `Stage` is an identifier;
  * this module only reasons about the shape of the pipeline, never runs it.
  */
+import type { Plan } from "./schema.js";
 import { STAGES, type Stage } from "./schema.js";
 
 export { STAGES };
@@ -17,18 +18,22 @@ export type { Stage };
 
 /**
  * `[from, to]` means `to` consumes something `from` produced, so `to` must
- * re-run whenever `from` does. This is exactly the diagram in
- * AGENTS.md / docs/ARCHITECTURE.md:
+ * re-run whenever `from` does. `frames` (`docs/SPEC.md` §6) sits between
+ * `footage`/`align` and `compose`, normalising every beat's footage
+ * decision (a trimmed stock clip, a generated clip, or a rendered motion
+ * scene) into one clip before compose ever sees it. `footage → compose`
+ * and `align → compose` are replaced by the path through `frames`.
  *
  *   script ──┬──▶ voice ──▶ align ──┐
- *            └──▶ footage ──────────┴──▶ compose
+ *            └──▶ footage ──────────┴──▶ frames ──▶ compose
  */
 const EDGES: ReadonlyArray<readonly [Stage, Stage]> = [
   ["script", "voice"],
   ["script", "footage"],
   ["voice", "align"],
-  ["align", "compose"],
-  ["footage", "compose"],
+  ["align", "frames"],
+  ["footage", "frames"],
+  ["frames", "compose"],
 ];
 
 function closure(
@@ -98,9 +103,10 @@ function prefix(pattern: string, owner: Owner): PrefixRule {
  *
  * These exist because "footage" and "script" are not owned by a single
  * stage end to end - the re-run table in `docs/SPEC.md` §6 requires that
- * swapping a clip (footage.<id>.assetId/in/out) costs only a re-compose,
- * while a new search term (script.beats.<i>.search) costs a re-fetch,
- * even though both live under a beat.
+ * swapping a clip (footage.<id>.assetId/in/out) costs only a re-render of
+ * that beat's normalised clip, while a new search term
+ * (script.beats.<i>.search) costs a re-fetch, even though both live under
+ * a beat.
  */
 const FIELD_RULES: readonly Rule[] = [
   // A hand-edited script line is spoken text - it changes the voiceover,
@@ -115,13 +121,38 @@ const FIELD_RULES: readonly Rule[] = [
   // A beat's identity is structural. Treated conservatively: full re-run.
   exact("script.beats.*.id", "script"),
 
-  // Picking a different already-fetched candidate, or trimming it, is a
-  // compose-only change - no new provider call is needed.
-  exact("footage.*.assetId", "compose"),
-  exact("footage.*.in", "compose"),
-  exact("footage.*.out", "compose"),
+  // Footage: additions for the three-source union (`docs/SPEC.md` §11).
+  // Which source a beat uses is a footage-stage decision either way.
+  exact("footage.*.source", "footage"),
+
+  // Stock: picking a different already-fetched candidate, or trimming it,
+  // is now `frames`'s job (that beat's normalised clip is re-rendered) -
+  // not `compose` directly, now that `frames` sits between them, and not
+  // `footage` - no new provider call is needed.
+  exact("footage.*.assetId", "frames"),
+  exact("footage.*.in", "frames"),
+  exact("footage.*.out", "frames"),
   // Changing which provider supplies a beat's footage needs a re-fetch.
   exact("footage.*.provider", "footage"),
+  // Attribution, recorded once a clip is chosen. Never re-fetched over.
+  prefix("footage.*.credit", null),
+
+  // Generated: everything that changes what gets generated needs a new
+  // provider job - a re-render never re-submits it (`output` is the stored
+  // result, not a fresh request).
+  exact("footage.*.prompt", "footage"),
+  exact("footage.*.model", "footage"),
+  exact("footage.*.seconds", "footage"),
+  prefix("footage.*.output", null),
+
+  // Motion: the scene itself - template params or hand-edited code - is a
+  // local, free re-render in `frames`, never a new model call. Asking the
+  // model to rewrite the scene is a UI action that runs `footage` directly
+  // and produces a new `scene` value; the path-diff rule below only has to
+  // cover what re-deriving from that new value costs, which is `frames`
+  // either way.
+  prefix("footage.*.scene", "frames"),
+  exact("footage.*.captionsInScene", "frames"),
 ];
 
 /**
@@ -142,6 +173,9 @@ const NAMESPACE_RULES: readonly Rule[] = [
   prefix("captions", "compose"),
   prefix("music", "compose"),
   prefix("format", "compose"),
+  // Render metadata (`schema.ts`'s `RenderMetadataSchema`) records what a
+  // fresh `frames` run used - never a decision, never re-run over.
+  prefix("render", null),
 ];
 
 const RULES: readonly Rule[] = [...FIELD_RULES, ...NAMESPACE_RULES];
@@ -196,4 +230,85 @@ export function invalidate(changedPaths: readonly string[]): Stage[] {
     }
   }
   return STAGES.filter((stage) => toRerun.has(stage));
+}
+
+/** `"all"`, or exactly the beats a stage must re-run for. */
+export type ScopedBeats = "all" | ReadonlySet<string>;
+
+export interface ScopedInvalidation {
+  readonly stage: Stage;
+  readonly beats: ScopedBeats;
+}
+
+/**
+ * `footage.<beatId>...` is the only plan path that literally names one
+ * beat's own footage decision - `footage`/`frames` are the only two
+ * stages `invalidateScoped` ever narrows below "every beat" (see below),
+ * so this is the one place that narrowing needs to read a beat id back out
+ * of a path.
+ */
+function footageBeatIdOf(path: string): string | undefined {
+  const segments = path.split(".");
+  return segments[0] === "footage" ? segments[1] : undefined;
+}
+
+/**
+ * Re-rendering every beat's animation because one beat's text changed
+ * would make a six-beat video's cheapest motion edit six times slower
+ * than it needs to be. `invalidate()` above answers "which stages",
+ * coarsely, and is kept exactly as it was (its own tests are kept too -
+ * nothing here changes what it returns). This answers the same question
+ * at beat granularity, but only for `footage` and `frames`, the two
+ * stages that are actually keyed per beat:
+ *
+ * - A change that names one beat's footage field (`footage.<id>.*`)
+ *   narrows `footage` and `frames` to that beat alone.
+ * - A voice or align change moves timing for every *motion* beat's frames
+ *   (its on-screen duration comes from the aligned narration) but touches
+ *   no stock or generated beat's `frames` output, so those are left out
+ *   entirely.
+ * - Anything else that reaches `footage`/`frames` (a script-level change,
+ *   the prompt, the seed) is conservative: every beat.
+ *
+ * Every other stage is never beat-scoped here - `script`, `voice`,
+ * `align` and `compose` each produce one thing for the whole plan, not
+ * one per beat, so "all" is the only meaningful answer for them.
+ */
+export function invalidateScoped(changedPaths: readonly string[], plan: Plan): ScopedInvalidation[] {
+  const acc = new Map<Stage, ScopedBeats>();
+
+  const addAll = (stage: Stage): void => {
+    acc.set(stage, "all");
+  };
+  const addBeats = (stage: Stage, beatIds: Iterable<string>): void => {
+    const existing = acc.get(stage);
+    if (existing === "all") return;
+    const merged = new Set<string>(existing);
+    for (const beatId of beatIds) merged.add(beatId);
+    acc.set(stage, merged);
+  };
+  const motionBeatIds = (): string[] =>
+    plan.script.beats.filter((beat) => plan.footage[beat.id]?.source === "motion").map((beat) => beat.id);
+
+  for (const path of changedPaths) {
+    const owner = ownerOf(path);
+    if (owner === null) continue;
+    const footageBeatId = footageBeatIdOf(path);
+
+    for (const stage of downstreamOf(owner)) {
+      if (stage !== "footage" && stage !== "frames") {
+        addAll(stage);
+        continue;
+      }
+      if (footageBeatId !== undefined && (owner === "footage" || owner === "frames")) {
+        addBeats(stage, [footageBeatId]);
+      } else if (stage === "frames" && (owner === "voice" || owner === "align")) {
+        addBeats(stage, motionBeatIds());
+      } else {
+        addAll(stage);
+      }
+    }
+  }
+
+  return STAGES.filter((stage) => acc.has(stage)).map((stage) => ({ stage, beats: acc.get(stage) as ScopedBeats }));
 }

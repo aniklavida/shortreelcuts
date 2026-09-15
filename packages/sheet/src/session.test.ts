@@ -54,7 +54,7 @@ describe("ProjectSession.generate", () => {
 });
 
 describe("ProjectSession.applyOverride — selective invalidation", () => {
-  it("changing the voice re-runs voice, align and compose only — matching invalidate() exactly", async () => {
+  it("changing the voice re-runs voice, align, frames and compose only — matching invalidate() exactly", async () => {
     const { session, runners } = makeSession();
     await session.generate({ brief, seed: 7 });
     vi.clearAllMocks();
@@ -63,7 +63,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
 
     const expected = invalidate(["voice.voiceId"]);
     expect(result.ranStages).toEqual(expected);
-    expect(result.ranStages).toEqual(["voice", "align", "compose"]);
+    expect(result.ranStages).toEqual(["voice", "align", "frames", "compose"]);
 
     expect(runners.script).not.toHaveBeenCalled();
     expect(runners.footage).not.toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     expect(result.plan.script.hook).toBe(session.history[0]?.script.hook); // untouched
   });
 
-  it("swapping one clip re-runs compose only", async () => {
+  it("swapping one clip re-runs frames and compose only", async () => {
     const { session, runners } = makeSession();
     const initial = await session.generate({ brief, seed: 7 });
     const otherCandidate = session.candidatesFor("footage.b1")?.find((c) => !c.chosen);
@@ -87,14 +87,16 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     const result = await session.applyOverride([["footage.b1.assetId", otherCandidate!.id]]);
 
     expect(result.ranStages).toEqual(invalidate(["footage.b1.assetId"]));
-    expect(result.ranStages).toEqual(["compose"]);
+    expect(result.ranStages).toEqual(["frames", "compose"]);
     expect(runners.script).not.toHaveBeenCalled();
     expect(runners.voice).not.toHaveBeenCalled();
     expect(runners.footage).not.toHaveBeenCalled();
     expect(runners.align).not.toHaveBeenCalled();
     expect(runners.compose).toHaveBeenCalledTimes(1);
 
-    expect(result.plan.footage.b1?.assetId).toBe(otherCandidate!.id);
+    const clip = result.plan.footage.b1;
+    expect(clip?.source).toBe("stock");
+    if (clip?.source === "stock") expect(clip.assetId).toBe(otherCandidate!.id);
     expect(result.plan.script).toEqual(initial.script); // untouched
     expect(result.plan.voice).toEqual(initial.voice); // untouched
   });
@@ -112,7 +114,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     expect(result.plan.captions.style).toBe("minimal-white");
   });
 
-  it("changing the footage provider re-runs footage and compose, not voice or align", async () => {
+  it("changing the footage provider re-runs footage, frames and compose, not voice or align", async () => {
     const { session, runners } = makeSession();
     await session.generate({ brief, seed: 7 });
     vi.clearAllMocks();
@@ -120,13 +122,13 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     const result = await session.applyOverride([["footage.b1.provider", "a-different-provider"]]);
 
     expect(result.ranStages).toEqual(invalidate(["footage.b1.provider"]));
-    expect(result.ranStages).toEqual(["footage", "compose"]);
+    expect(result.ranStages).toEqual(["footage", "frames", "compose"]);
     expect(runners.voice).not.toHaveBeenCalled();
     expect(runners.align).not.toHaveBeenCalled();
     expect(runners.footage).toHaveBeenCalledTimes(1);
   });
 
-  it("editing a beat's narration text re-runs voice, align and compose — not script, per graph.ts's field rule", async () => {
+  it("editing a beat's narration text re-runs voice, align, frames and compose — not script, per graph.ts's field rule", async () => {
     const { session, runners } = makeSession();
     await session.generate({ brief, seed: 7 });
     vi.clearAllMocks();
@@ -134,7 +136,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     const result = await session.applyOverride([["script.beats.0.narration", "A brand new line, spoken differently."]]);
 
     expect(result.ranStages).toEqual(invalidate(["script.beats.0.narration"]));
-    expect(result.ranStages).toEqual(["voice", "align", "compose"]);
+    expect(result.ranStages).toEqual(["voice", "align", "frames", "compose"]);
     expect(runners.script).not.toHaveBeenCalled();
     expect(result.plan.script.beats[0]?.narration).toBe("A brand new line, spoken differently.");
   });
@@ -156,7 +158,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
     await session.applyOverride([["voice.voiceId", "confident-male"]]);
 
     expect(log[0]).toBe("cost");
-    expect(log.slice(1)).toEqual(["start:voice", "start:align", "start:compose"]);
+    expect(log.slice(1)).toEqual(["start:voice", "start:align", "start:frames", "start:compose"]);
   });
 
   it("a change to the prompt itself re-runs everything", async () => {
@@ -166,7 +168,7 @@ describe("ProjectSession.applyOverride — selective invalidation", () => {
 
     const result = await session.applyOverride([["brief.prompt", "a video about volcanoes"]]);
 
-    expect(result.ranStages).toEqual(["script", "voice", "footage", "align", "compose"]);
+    expect(result.ranStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
     expect(runners.script).toHaveBeenCalledTimes(1);
   });
 

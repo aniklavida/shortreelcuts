@@ -18,7 +18,7 @@
  * word-timing row are real plan fields with nothing to override yet (see
  * the reasons attached to each).
  */
-import { ownerOf, type Plan, type Stage } from "@shortreelcuts/plan";
+import { ownerOf, type FootageClip, type Plan, type Stage } from "@shortreelcuts/plan";
 import { STUB_VOICES, type DecisionCandidate } from "@shortreelcuts/stages";
 
 /**
@@ -151,6 +151,23 @@ function voiceGroup(plan: Plan, candidatesFor: CandidateLookup): DecisionGroup {
   };
 }
 
+/**
+ * What a footage row shows for "chosen", given the clip currently on the
+ * plan. Only "stock" has a real UI today (a candidate strip, or the
+ * asset id itself) — showing a per-beat, three-way source picker for
+ * "generated" and "motion" is not built yet. This still states plainly
+ * what the plan holds rather than guessing at it.
+ */
+function footageChosenLabel(clip: FootageClip, candidates: readonly DecisionCandidate[] | undefined): string {
+  if (clip.source === "stock") {
+    return (candidates ?? []).find((c) => c.chosen)?.label ?? clip.assetId;
+  }
+  if (clip.source === "generated") {
+    return `generated clip: "${clip.prompt}"`;
+  }
+  return `animated scene (${clip.scene.kind === "template" ? clip.scene.template : "hand-written code"})`;
+}
+
 function footageGroup(plan: Plan, candidatesFor: CandidateLookup): DecisionGroup {
   const rows: DecisionRow[] = [];
   plan.script.beats.forEach((beat, i) => {
@@ -159,15 +176,32 @@ function footageGroup(plan: Plan, candidatesFor: CandidateLookup): DecisionGroup
     const candidates = candidatesFor(`footage.${beat.id}`);
     rows.push({
       id: `footage.${beat.id}`,
-      planPaths: [`footage.${beat.id}.assetId`, `footage.${beat.id}.provider`, `footage.${beat.id}.in`, `footage.${beat.id}.out`],
+      planPaths: [
+        `footage.${beat.id}.source`,
+        `footage.${beat.id}.assetId`,
+        `footage.${beat.id}.provider`,
+        `footage.${beat.id}.in`,
+        `footage.${beat.id}.out`,
+        `footage.${beat.id}.credit`,
+        `footage.${beat.id}.prompt`,
+        `footage.${beat.id}.model`,
+        `footage.${beat.id}.seconds`,
+        `footage.${beat.id}.providerSeed`,
+        `footage.${beat.id}.output`,
+        `footage.${beat.id}.quotedCost`,
+        `footage.${beat.id}.runtime`,
+        `footage.${beat.id}.scene`,
+        `footage.${beat.id}.captionsInScene`,
+      ],
       ownerStage: ownerOf(`footage.${beat.id}.assetId`),
       label: `Clip for beat ${i + 1} — "${beat.search}"`,
-      chosen: (candidates ?? []).find((c) => c.chosen)?.label ?? clip.assetId,
+      chosen: footageChosenLabel(clip, candidates),
       reason: clip.reason,
       candidates,
-      control: candidates
-        ? { kind: "select", planPath: `footage.${beat.id}.assetId`, options: candidates.map((c) => ({ value: c.id, label: c.label })) }
-        : undefined,
+      control:
+        candidates && clip.source === "stock"
+          ? { kind: "select", planPath: `footage.${beat.id}.assetId`, options: candidates.map((c) => ({ value: c.id, label: c.label })) }
+          : undefined,
     });
     rows.push({
       id: `script.beats.${i}.search`,

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { contentKeyFor, contentKeysFor, stageInputPaths } from "./artifact.js";
 import { invalidate } from "./graph.js";
 import { diffPaths, STAGES, type Stage } from "./index.js";
-import type { Plan } from "./schema.js";
+import type { Plan, StockFootage } from "./schema.js";
 import { makeFixturePlan } from "./testing/fixtures.js";
 
 describe("determinism: the same plan produces the same key twice", () => {
@@ -100,6 +100,52 @@ describe("content addressing agrees with invalidate(): unchanged stages are reus
     const before = makeFixturePlan();
     const after: Plan = { ...before, voice: { ...before.voice, reason: "a different explanation" } };
     expect(keysChangedBy(before, after)).toEqual([]);
+  });
+});
+
+describe("per-beat content keys (docs/SPEC.md §6)", () => {
+  it("throws for a stage other than footage/frames", () => {
+    const plan = makeFixturePlan();
+    expect(() => contentKeyFor("compose", plan, "b1")).toThrow();
+    expect(() => stageInputPaths("script", plan, "b1")).toThrow();
+  });
+
+  it("two beats of the same plan get different frames keys", () => {
+    const plan = makeFixturePlan();
+    expect(contentKeyFor("frames", plan, "b1")).not.toBe(contentKeyFor("frames", plan, "b2"));
+  });
+
+  it("a per-beat key differs from the whole-stage key", () => {
+    const plan = makeFixturePlan();
+    expect(contentKeyFor("frames", plan, "b1")).not.toBe(contentKeyFor("frames", plan));
+  });
+
+  it("editing beat b1's clip changes only b1's frames key, not b2's", () => {
+    const before = makeFixturePlan();
+    const after: Plan = {
+      ...before,
+      footage: {
+        ...before.footage,
+        b1: { ...(before.footage["b1"] as StockFootage), assetId: "a-different-clip" },
+      },
+    };
+    expect(contentKeyFor("frames", before, "b1")).not.toBe(contentKeyFor("frames", after, "b1"));
+    expect(contentKeyFor("frames", before, "b2")).toBe(contentKeyFor("frames", after, "b2"));
+  });
+
+  it("a change that applies to every beat (the voice) still changes every beat's frames key", () => {
+    const before = makeFixturePlan();
+    const after: Plan = { ...before, voice: { ...before.voice, rate: 1.4 } };
+    expect(contentKeyFor("frames", before, "b1")).not.toBe(contentKeyFor("frames", after, "b1"));
+    expect(contentKeyFor("frames", before, "b2")).not.toBe(contentKeyFor("frames", after, "b2"));
+  });
+
+  it("a beat's own input paths never include another beat's footage or word-timing leaves", () => {
+    const plan = makeFixturePlan();
+    const paths = stageInputPaths("frames", plan, "b1");
+    expect(paths.some((p) => p.startsWith("footage.b2."))).toBe(false);
+    expect(paths.some((p) => p.startsWith("align.words.b2."))).toBe(false);
+    expect(paths.some((p) => p.startsWith("footage.b1."))).toBe(true);
   });
 });
 

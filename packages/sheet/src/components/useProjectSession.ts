@@ -15,7 +15,14 @@ import type { StageRunners } from "@shortreelcuts/stages";
 export type StageStatus = "pending" | "running" | "done";
 
 function freshProgress(): Record<Stage, StageStatus> {
-  return { script: "pending", voice: "pending", footage: "pending", align: "pending", compose: "pending" };
+  return {
+    script: "pending",
+    voice: "pending",
+    footage: "pending",
+    align: "pending",
+    frames: "pending",
+    compose: "pending",
+  };
 }
 
 export interface UseProjectSession {

@@ -4,7 +4,7 @@ import { buildCuesForBeat, buildTimeline } from "./timeline.js";
 
 function planWithBeats(): Plan {
   return {
-    planVersion: 1,
+    planVersion: 2,
     seed: 1,
     brief: { prompt: "test", targetSeconds: 10, tone: "calm" },
     script: {
@@ -18,9 +18,33 @@ function planWithBeats(): Plan {
     },
     voice: { provider: "stub", voiceId: "v1", rate: 1, reason: "test voice" },
     footage: {
-      b1: { provider: "stub", assetId: "a1", in: 0, out: 4, reason: "test clip 1" },
-      b2: { provider: "stub", assetId: "a2", in: 1, out: 3, reason: "test clip 2 — shorter than its narration" },
-      b3: { provider: "stub", assetId: "a3", in: 0, out: 10, reason: "test clip 3 — longer than its narration" },
+      b1: {
+        source: "stock",
+        provider: "stub",
+        assetId: "a1",
+        in: 0,
+        out: 4,
+        credit: { creator: "test creator", pageUrl: "https://stub.invalid/a1" },
+        reason: "test clip 1",
+      },
+      b2: {
+        source: "stock",
+        provider: "stub",
+        assetId: "a2",
+        in: 1,
+        out: 3,
+        credit: { creator: "test creator", pageUrl: "https://stub.invalid/a2" },
+        reason: "test clip 2 — shorter than its narration",
+      },
+      b3: {
+        source: "stock",
+        provider: "stub",
+        assetId: "a3",
+        in: 0,
+        out: 10,
+        credit: { creator: "test creator", pageUrl: "https://stub.invalid/a3" },
+        reason: "test clip 3 — longer than its narration",
+      },
     },
     align: {
       provider: "stub",
@@ -140,5 +164,24 @@ describe("buildTimeline", () => {
     const plan = planWithBeats();
     const { b1: _b1, ...rest } = plan.footage;
     expect(() => buildTimeline({ ...plan, footage: rest }, media, measured)).toThrow(/no footage decision/);
+  });
+
+  it("throws a clear error for a non-stock footage source — the frames stage that would normalise it is not built yet", () => {
+    const plan = planWithBeats();
+    const withMotionBeat: Plan = {
+      ...plan,
+      footage: {
+        ...plan.footage,
+        b1: {
+          source: "motion",
+          runtime: "srcuts-motion@1",
+          scene: { kind: "template", template: "kinetic-headline", params: {} },
+          captionsInScene: true,
+          model: "a connected model",
+          reason: "test motion scene",
+        },
+      },
+    };
+    expect(() => buildTimeline(withMotionBeat, media, measured)).toThrow(/frames stage/);
   });
 });

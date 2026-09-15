@@ -18,7 +18,7 @@
  * skipping one that never finished.
  */
 import { getJob, markDone, markFailed, markRunning, recordStageCompletion, type Database } from "@shortreelcuts/db";
-import { STAGES, type Plan, type Stage } from "@shortreelcuts/plan";
+import { CURRENT_PLAN_VERSION, STAGES, type Plan, type Stage } from "@shortreelcuts/plan";
 import type { StageRunners } from "@shortreelcuts/stages";
 
 export interface JobRunEvents {
@@ -51,6 +51,14 @@ async function runOneStage(
       return runners.footage({ plan: draft as Plan }).then((r) => ({ patch: r.patch }));
     case "align":
       return runners.align({ plan: draft as Plan }).then((r) => ({ patch: r.patch }));
+    case "frames":
+      // `@shortreelcuts/plan`'s graph added `frames` as its own stage
+      // (`planVersion` 2 — research/PROPOSAL.md §4.1), so `STAGES` names it
+      // and this loop reaches it, but no runner exists yet (proposal work
+      // item 5) and `StageRunners` has no `frames` method to call. A no-op
+      // patch keeps every job completing today, the same stand-in
+      // `packages/sheet`'s `ProjectSession` uses for the same reason.
+      return Promise.resolve({ patch: {} });
     case "compose":
       return runners.compose({ plan: draft as Plan, workDir }).then((r) => ({
         patch: r.patch,
@@ -79,7 +87,7 @@ export async function runJob(
 
   const input = row.input as { brief: Plan["brief"]; seed: number };
   let draft: Record<string, unknown> = (row.plan as Record<string, unknown> | null) ?? {
-    planVersion: 1,
+    planVersion: CURRENT_PLAN_VERSION,
     seed: input.seed,
     brief: input.brief,
   };

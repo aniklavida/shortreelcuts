@@ -137,6 +137,19 @@ export function buildTimeline(
     if (!footageClip) {
       throw new Error(`no footage decision for beat "${beat.id}"`);
     }
+    // `planVersion` 2 makes footage a three-source union (`docs/SPEC.md` §11), but
+    // `frames` — the stage that would normalise a generated clip or a rendered
+    // motion scene into the same shape a stock clip already has — has no runner
+    // built yet (§6). Compose only ever received a stock-shaped `in`/`out` crop,
+    // so it still only knows how to build a timeline from one; every migrated
+    // `planVersion` 1 plan is stock-only, so this is not a narrowing of what
+    // already works today.
+    if (footageClip.source !== "stock") {
+      throw new Error(
+        `beat "${beat.id}" uses a "${footageClip.source}" footage source, which compose cannot place on a ` +
+          `timeline directly yet — the frames stage that would normalise it into a clip has no runner built yet`,
+      );
+    }
 
     const narrationDurationSeconds = requireEntry(measured.narrationSeconds, beat.id, "narration");
     const footageSourceDurationSeconds = requireEntry(measured.footageSeconds, beat.id, "footage");

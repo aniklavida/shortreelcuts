@@ -7,9 +7,62 @@ describe("PlanSchema", () => {
     expect(() => parsePlan(makeFixturePlan())).not.toThrow();
   });
 
-  it("planVersion is 1 at v1", () => {
-    expect(CURRENT_PLAN_VERSION).toBe(1);
-    expect(makeFixturePlan().planVersion).toBe(1);
+  it("planVersion is 2, since the footage union", () => {
+    expect(CURRENT_PLAN_VERSION).toBe(2);
+    expect(makeFixturePlan().planVersion).toBe(2);
+  });
+
+  it("rejects a stock footage clip with no credit", () => {
+    const plan = makeFixturePlan();
+    const { credit: _credit, ...clipWithoutCredit } = plan.footage["b1"] as Record<string, unknown>;
+    expect(() => parsePlan({ ...plan, footage: { ...plan.footage, b1: clipWithoutCredit } })).toThrow();
+  });
+
+  it("accepts a generated footage clip", () => {
+    const plan = makeFixturePlan();
+    expect(() =>
+      parsePlan({
+        ...plan,
+        footage: {
+          ...plan.footage,
+          b1: {
+            source: "generated",
+            provider: "veo",
+            model: "veo-3.1",
+            prompt: "a hillside tea garden at sunrise, drone shot",
+            seconds: 5,
+            quotedCost: { amount: 0.5, currency: "USD", basis: "Veo 3.1, $0.10/s, read 2026-09-14" },
+            reason: "no stock candidate showed the drone angle the script calls for",
+          },
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts a motion footage clip using a template", () => {
+    const plan = makeFixturePlan();
+    expect(() =>
+      parsePlan({
+        ...plan,
+        footage: {
+          ...plan.footage,
+          b1: {
+            source: "motion",
+            runtime: "srcuts-motion@1",
+            scene: { kind: "template", template: "kinetic-headline", params: { headline: "Every cup starts on a hillside." } },
+            captionsInScene: true,
+            model: "a connected model",
+            reason: "the beat is a number-free claim, better said as animated text than shown as stock footage",
+          },
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects a footage clip with no source", () => {
+    const plan = makeFixturePlan();
+    const { source: _source, ...clipWithoutSource } = plan.footage["b1"] as Record<string, unknown>;
+    expect(() => parsePlan({ ...plan, footage: { ...plan.footage, b1: clipWithoutSource } })).toThrow();
   });
 
   it("rejects an unknown top-level field", () => {

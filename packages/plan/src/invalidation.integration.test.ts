@@ -12,12 +12,16 @@
  * the exact stage list invalidate() returns.
  */
 import { describe, expect, it } from "vitest";
-import { diffPaths, invalidate, STAGES, type Stage } from "./index.js";
-import type { Plan } from "./schema.js";
+import { diffPaths, invalidate, invalidateScoped, STAGES, type Stage } from "./index.js";
+import type { Plan, StockFootage } from "./schema.js";
 import { makeFixturePlan } from "./testing/fixtures.js";
 
 function invalidatedBy(before: Plan, after: Plan): Stage[] {
   return invalidate(diffPaths(before, after));
+}
+
+function scopedInvalidatedBy(before: Plan, after: Plan) {
+  return invalidateScoped(diffPaths(before, after), after);
 }
 
 describe("real plan edits, matched against the invalidation table", () => {
@@ -33,26 +37,29 @@ describe("real plan edits, matched against the invalidation table", () => {
     expect(invalidatedBy(original, edited)).toEqual(["compose"]);
   });
 
-  it("swap one clip -> compose only", () => {
+  it("swap one clip -> frames, then compose", () => {
     const edited: Plan = {
       ...original,
       footage: {
         ...original.footage,
-        b2: { ...original.footage["b2"]!, assetId: "clip-hands-alternate-candidate" },
+        b2: { ...(original.footage["b2"] as StockFootage), assetId: "clip-hands-alternate-candidate" },
       },
     };
-    expect(invalidatedBy(original, edited)).toEqual(["compose"]);
+    expect(invalidatedBy(original, edited)).toEqual(["frames", "compose"]);
+    // Per-beat: only b2's frames output actually needs to change.
+    const scoped = scopedInvalidatedBy(original, edited);
+    expect(scoped.find((s) => s.stage === "frames")?.beats).toEqual(new Set(["b2"]));
   });
 
-  it("crop or trim a clip -> compose only", () => {
+  it("crop or trim a clip -> frames, then compose", () => {
     const edited: Plan = {
       ...original,
-      footage: { ...original.footage, b1: { ...original.footage["b1"]!, in: 0.5, out: 3.9 } },
+      footage: { ...original.footage, b1: { ...(original.footage["b1"] as StockFootage), in: 0.5, out: 3.9 } },
     };
-    expect(invalidatedBy(original, edited)).toEqual(["compose"]);
+    expect(invalidatedBy(original, edited)).toEqual(["frames", "compose"]);
   });
 
-  it("search term for one beat -> footage, then compose", () => {
+  it("search term for one beat -> footage, frames, then compose", () => {
     const edited: Plan = {
       ...original,
       script: {
@@ -63,15 +70,19 @@ describe("real plan edits, matched against the invalidation table", () => {
         ],
       },
     };
-    expect(invalidatedBy(original, edited)).toEqual(["footage", "compose"]);
+    expect(invalidatedBy(original, edited)).toEqual(["footage", "frames", "compose"]);
   });
 
-  it("voice, or speaking rate -> voice, align, compose", () => {
+  it("voice, or speaking rate -> voice, align, frames, compose", () => {
     const edited: Plan = { ...original, voice: { ...original.voice, rate: 0.9 } };
-    expect(invalidatedBy(original, edited)).toEqual(["voice", "align", "compose"]);
+    expect(invalidatedBy(original, edited)).toEqual(["voice", "align", "frames", "compose"]);
+    // Per-beat: this fixture has no motion beats, so frames is invalidated for zero beats,
+    // not "all" — the whole point of scoping invalidation by beat.
+    const scoped = scopedInvalidatedBy(original, edited);
+    expect(scoped.find((s) => s.stage === "frames")?.beats).toEqual(new Set());
   });
 
-  it("any script line -> voice, align, compose (footage untouched: the search term did not move)", () => {
+  it("any script line -> voice, align, frames, compose (footage untouched: the search term did not move)", () => {
     const edited: Plan = {
       ...original,
       script: {
@@ -83,11 +94,11 @@ describe("real plan edits, matched against the invalidation table", () => {
       },
     };
     const result = invalidatedBy(original, edited);
-    expect(result).toEqual(["voice", "align", "compose"]);
+    expect(result).toEqual(["voice", "align", "frames", "compose"]);
     expect(result).not.toContain("footage");
   });
 
-  it("a script line plus its own search term moving -> voice, footage, align, compose", () => {
+  it("a script line plus its own search term moving -> voice, footage, align, frames, compose", () => {
     const edited: Plan = {
       ...original,
       script: {
@@ -102,7 +113,7 @@ describe("real plan edits, matched against the invalidation table", () => {
         ],
       },
     };
-    expect(invalidatedBy(original, edited)).toEqual(["voice", "footage", "align", "compose"]);
+    expect(invalidatedBy(original, edited)).toEqual(["voice", "footage", "align", "frames", "compose"]);
   });
 
   it("the prompt itself -> everything", () => {
@@ -124,5 +135,46 @@ describe("real plan edits, matched against the invalidation table", () => {
       },
     };
     expect(invalidatedBy(original, edited)).toEqual([]);
+  });
+});
+
+describe("real plan edits, per-beat scoping against a mixed-source plan (docs/SPEC.md §6)", () => {
+  // b1 is motion, b2 is stock — a real mix of two of the three sources docs/SPEC.md §11 names.
+  const original: Plan = {
+    ...makeFixturePlan(),
+    footage: {
+      ...makeFixturePlan().footage,
+      b1: {
+        source: "motion",
+        runtime: "srcuts-motion@1",
+        scene: { kind: "template", template: "kinetic-headline", params: { headline: "Cha, explained." } },
+        captionsInScene: true,
+        model: "a connected model",
+        reason: "the opening claim is text, better animated than shown as stock footage",
+      },
+    },
+  };
+
+  it("editing the motion beat's template params invalidates frames for that beat only", () => {
+    const edited: Plan = {
+      ...original,
+      footage: {
+        ...original.footage,
+        b1: {
+          ...(original.footage["b1"] as Extract<Plan["footage"][string], { source: "motion" }>),
+          scene: { kind: "template", template: "kinetic-headline", params: { headline: "Cha, really explained." } },
+        },
+      },
+    };
+    const scoped = invalidateScoped(diffPaths(original, edited), edited);
+    expect(scoped.find((s) => s.stage === "frames")?.beats).toEqual(new Set(["b1"]));
+    expect(scoped.find((s) => s.stage === "compose")?.beats).toBe("all");
+    expect(invalidatedBy(original, edited)).toEqual(["frames", "compose"]);
+  });
+
+  it("changing the voice invalidates frames for the motion beat and not the stock beat", () => {
+    const edited: Plan = { ...original, voice: { ...original.voice, rate: 1.15 } };
+    const scoped = invalidateScoped(diffPaths(original, edited), edited);
+    expect(scoped.find((s) => s.stage === "frames")?.beats).toEqual(new Set(["b1"]));
   });
 });

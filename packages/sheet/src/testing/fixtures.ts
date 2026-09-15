@@ -9,7 +9,7 @@ import type { Plan } from "@shortreelcuts/plan";
 /** A plan with every stage already decided — as if `generate()` had already run once. */
 export function makeSheetFixturePlan(overrides: Partial<Plan> = {}): Plan {
   const base: Plan = {
-    planVersion: 1,
+    planVersion: 2,
     seed: 7,
     brief: { prompt: "a video about why the sky is blue", targetSeconds: 24, tone: "calm" },
     script: {
@@ -22,8 +22,24 @@ export function makeSheetFixturePlan(overrides: Partial<Plan> = {}): Plan {
     },
     voice: { provider: "stub", voiceId: "warm-female", rate: 1.0, reason: "matches the calm tone at a normal pace" },
     footage: {
-      b1: { provider: "stub", assetId: "b1-candidate-0", in: 0, out: 4, reason: "closest of 4 candidates for \"sunlight through clouds\"" },
-      b2: { provider: "stub", assetId: "b2-candidate-1", in: 0, out: 4, reason: "closest of 4 candidates for \"blue sky closeup\"" },
+      b1: {
+        source: "stock",
+        provider: "stub",
+        assetId: "b1-candidate-0",
+        in: 0,
+        out: 4,
+        credit: { creator: "a stub creator", pageUrl: "https://stub.invalid/b1-candidate-0" },
+        reason: "closest of 4 candidates for \"sunlight through clouds\"",
+      },
+      b2: {
+        source: "stock",
+        provider: "stub",
+        assetId: "b2-candidate-1",
+        in: 0,
+        out: 4,
+        credit: { creator: "a stub creator", pageUrl: "https://stub.invalid/b2-candidate-1" },
+        reason: "closest of 4 candidates for \"blue sky closeup\"",
+      },
     },
     align: {
       provider: "stub-aligner",

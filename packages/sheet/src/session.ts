@@ -8,7 +8,16 @@
  * worker yet (`packages/db` doesn't exist). Swapping this for a real
  * queued worker later changes where this class runs, not its contract.
  */
-import { diffPaths, invalidate, leavesOf, parsePlan, type Brief, type Plan, type Stage } from "@shortreelcuts/plan";
+import {
+  CURRENT_PLAN_VERSION,
+  diffPaths,
+  invalidate,
+  leavesOf,
+  parsePlan,
+  type Brief,
+  type Plan,
+  type Stage,
+} from "@shortreelcuts/plan";
 import type { VideoFile } from "@shortreelcuts/render";
 import { estimateRerun, type CostEstimate } from "./cost.js";
 import { getAtPath, nearestReasonPath, setAllAtPaths } from "./patch.js";
@@ -113,7 +122,7 @@ export class ProjectSession {
 
   /** The first, full run: every stage, in dependency order. Nothing is invalidated against — there is no "before" yet. */
   async generate(input: GenerateInput): Promise<Plan> {
-    let draft: Record<string, unknown> = { planVersion: 1, seed: input.seed, brief: input.brief };
+    let draft: Record<string, unknown> = { planVersion: CURRENT_PLAN_VERSION, seed: input.seed, brief: input.brief };
 
     const scriptResult = await timed("script", this.events, () =>
       this.runners.script({ brief: input.brief, seed: input.seed }),
@@ -202,6 +211,15 @@ export class ProjectSession {
             return this.runners.footage({ plan: draft });
           case "align":
             return this.runners.align({ plan: draft });
+          case "frames":
+            // `@shortreelcuts/plan`'s graph added `frames` as its own stage
+            // (`docs/SPEC.md` §6) so `invalidate()` can say precisely what a
+            // footage change actually costs, but no runner for it exists
+            // yet: there is no `StageRunners.frames` to call. Treating it
+            // as a no-op keeps every override working today, the same way
+            // `compose`'s own stand-in media stands in for the other
+            // stages that do not exist as products yet.
+            return Promise.resolve({ patch: {}, candidates: {} });
           case "compose":
             return this.runners.compose({ plan: draft, workDir: this.workDir });
         }

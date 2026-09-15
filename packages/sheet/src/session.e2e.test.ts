@@ -57,14 +57,14 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
   );
 
   it(
-    "overriding the voice re-runs voice, align and real compose only — a real second render",
+    "overriding the voice re-runs voice, align, frames and real compose only — a real second render",
     async () => {
       vi.clearAllMocks();
 
       const result = await session.applyOverride([["voice.voiceId", "confident-male"]]);
 
       expect(result.ranStages).toEqual(invalidate(["voice.voiceId"]));
-      expect(result.ranStages).toEqual(["voice", "align", "compose"]);
+      expect(result.ranStages).toEqual(["voice", "align", "frames", "compose"]);
       expect(runners.script).not.toHaveBeenCalled();
       expect(runners.footage).not.toHaveBeenCalled();
       expect(runners.voice).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
   );
 
   it(
-    "swapping a footage clip re-runs real compose only — no script/voice/footage/align call at all",
+    "swapping a footage clip re-runs frames and real compose only — no script/voice/footage/align call at all",
     async () => {
       vi.clearAllMocks();
       const otherClip = session.candidatesFor("footage.b1")?.find((c) => !c.chosen);
@@ -87,7 +87,7 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
 
       const result = await session.applyOverride([["footage.b1.assetId", otherClip!.id]]);
 
-      expect(result.ranStages).toEqual(["compose"]);
+      expect(result.ranStages).toEqual(["frames", "compose"]);
       expect(runners.script).not.toHaveBeenCalled();
       expect(runners.voice).not.toHaveBeenCalled();
       expect(runners.footage).not.toHaveBeenCalled();

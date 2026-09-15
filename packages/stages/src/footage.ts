@@ -34,11 +34,17 @@ export async function runFootage(input: PlanSoFarInput): Promise<StageResult<Pic
     const chosenOption = options[chosenIndex] as DecisionCandidate;
     const marked = options.map((o) => ({ ...o, chosen: o.id === chosenOption.id }));
 
+    // `docs/SPEC.md` §11 names three footage sources; only stock has ever had a
+    // stand-in here, and this stub does not yet pick between them (that choice
+    // is proposal work item 6, the model-driven per-beat source pick). "stock"
+    // is the honest default until it does.
     footage[beat.id] = {
+      source: "stock",
       provider: "stub",
       assetId: chosenOption.id,
       in: 0,
       out: 4.0,
+      credit: { creator: "a stub creator", pageUrl: `https://stub.invalid/${chosenOption.id}` },
       reason: `closest of ${options.length} candidates for "${beat.search}"`,
     };
     candidates[`footage.${beat.id}`] = marked;

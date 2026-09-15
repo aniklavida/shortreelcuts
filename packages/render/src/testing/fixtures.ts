@@ -16,15 +16,25 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePlan, type Plan } from "@shortreelcuts/plan";
+import { migrate, type Plan } from "@shortreelcuts/plan";
 import { runFfmpeg } from "../process.js";
 import type { ResolvedMedia } from "../types.js";
 
 const PLAN_PATH = fileURLToPath(new URL("./hand-written-plan.json", import.meta.url));
 
+/**
+ * `hand-written-plan.json` is committed at `planVersion` 1 on purpose — it
+ * is the one real, on-disk `planVersion` 1 document in this repository, so
+ * loading it through `migrate()` rather than `parsePlan()` proves the
+ * `planVersion` 1 → 2 migration against a real fixture, not just an
+ * in-memory one, every time this test runs. Rendering byte-identically
+ * before and after the migration exists is what makes that safe
+ * (`@shortreelcuts/plan`'s own migration tests cover the shape of the
+ * migration itself).
+ */
 export async function loadHandWrittenPlan(): Promise<Plan> {
   const raw = await readFile(PLAN_PATH, "utf8");
-  return parsePlan(JSON.parse(raw));
+  return migrate(JSON.parse(raw));
 }
 
 /**

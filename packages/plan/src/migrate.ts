@@ -16,14 +16,50 @@ interface Migration {
 }
 
 /**
- * Ordered migration steps, oldest first. Empty at v1 by definition — there is
- * nothing older to migrate from yet.
- *
- * When planVersion 2 is introduced: add a step here
- * (`{ from: 1, to: 2, migrate: (plan) => ({ ...plan, planVersion: 2, ... }) }`),
- * raise `CURRENT_PLAN_VERSION` in `schema.ts`, and keep this array in order.
+ * `planVersion` 1 → 2: `footage.<id>` becomes a discriminated union across
+ * three sources (`docs/SPEC.md` §11). Every `planVersion` 1 clip only ever
+ * meant one of them — a stock clip, `{provider, assetId, in, out, reason}`
+ * — so the migration is a reshape, not a redesign:
+ * `source: "stock"` is added, and a `credit` object is synthesized because
+ * v1 never recorded one (nothing in that plan shape carried a creator or a
+ * page to attribute). A migrated clip's credit is honestly a placeholder,
+ * not a real one — there was nothing to recover it from.
  */
-const MIGRATIONS: readonly Migration[] = [];
+function migrateFootageV1toV2(footage: Record<string, unknown>): Record<string, unknown> {
+  const migrated: Record<string, unknown> = {};
+  for (const [beatId, rawClip] of Object.entries(footage)) {
+    const clip = rawClip as Record<string, unknown>;
+    migrated[beatId] = {
+      source: "stock",
+      provider: clip["provider"],
+      assetId: clip["assetId"],
+      in: clip["in"],
+      out: clip["out"],
+      credit: { creator: "unknown", pageUrl: "https://unknown.invalid/" },
+      reason: clip["reason"],
+    };
+  }
+  return migrated;
+}
+
+/**
+ * Ordered migration steps, oldest first.
+ *
+ * When a future planVersion is introduced: add a step here in the same
+ * shape, raise `CURRENT_PLAN_VERSION` in `schema.ts`, and keep this array
+ * in order.
+ */
+const MIGRATIONS: readonly Migration[] = [
+  {
+    from: 1,
+    to: 2,
+    migrate: (plan) => ({
+      ...plan,
+      planVersion: 2,
+      footage: migrateFootageV1toV2(plan["footage"] as Record<string, unknown>),
+    }),
+  },
+];
 
 class PlanVersionError extends Error {}
 

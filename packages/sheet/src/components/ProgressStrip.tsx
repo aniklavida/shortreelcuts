@@ -13,6 +13,9 @@ const LABELS: Record<Stage, string> = {
   voice: "Voice",
   footage: "Footage",
   align: "Captions",
+  // No runner exists yet; listed so the strip's stage set stays in sync
+  // with `@shortreelcuts/plan`'s `STAGES`.
+  frames: "Frames",
   compose: "Compose",
 };
 

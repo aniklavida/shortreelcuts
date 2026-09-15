@@ -89,7 +89,7 @@ describe("App — the decision sheet end to end", () => {
     expect(runners.align).toHaveBeenCalledTimes(1);
   });
 
-  it("swapping a footage clip shows the rejected candidates at a glance and re-runs compose only", async () => {
+  it("swapping a footage clip shows the rejected candidates at a glance and re-runs frames and compose only", async () => {
     const user = userEvent.setup();
     const { runners } = renderApp();
     await generateAVideo(user);
@@ -112,8 +112,10 @@ describe("App — the decision sheet end to end", () => {
     expect(notChosen).toBeDefined();
     await user.click(notChosen!);
 
+    // A clip swap now costs a `frames` render (research/PROPOSAL.md §4.1's new stage sits between
+    // footage and compose) as well as the compose re-render itself — no longer "compose only".
     const costHint = await within(footageGroup).findByTestId("cost-hint");
-    expect(costHint.textContent).toMatch(/re-renders/i);
+    expect(costHint.textContent).toMatch(/renders the animation frames/i);
 
     const applyButtons = within(footageGroup).getAllByRole("button", { name: "Apply" });
     await user.click(applyButtons[0]!);

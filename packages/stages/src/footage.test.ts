@@ -11,7 +11,10 @@ describe("runFootage (stub)", () => {
       const candidates = result.candidates[`footage.${beat.id}`];
       expect(candidates?.length).toBeGreaterThan(1);
       expect(candidates?.filter((c) => c.chosen)).toHaveLength(1);
-      expect(result.patch.footage[beat.id]?.assetId).toBe(candidates?.find((c) => c.chosen)?.id);
+      const clip = result.patch.footage[beat.id];
+      expect(clip?.source).toBe("stock");
+      if (clip?.source !== "stock") throw new Error("expected the stub to produce a stock clip");
+      expect(clip.assetId).toBe(candidates?.find((c) => c.chosen)?.id);
     }
   });
 

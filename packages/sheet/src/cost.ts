@@ -24,6 +24,10 @@ export const STAGE_COST: Readonly<Record<Stage, StageCost>> = {
   voice: { seconds: 18, does: "regenerates the voiceover" },
   footage: { seconds: 6, does: "looks up new footage" },
   align: { seconds: 3, does: "re-times the captions" },
+  // No runner exists yet — this is the same disclosed-placeholder heuristic
+  // the rest of this table already is, sized like a local render (no
+  // provider round trip) since that is what `frames` will be once it exists.
+  frames: { seconds: 5, does: "renders the animation frames" },
   compose: { seconds: 4, does: "re-renders the video" },
 };
 

@@ -71,23 +71,26 @@ Sketch, illustrative rather than final:
 
 ```jsonc
 {
-  "planVersion": 1,
+  "planVersion": 2,
   "seed": 41207,
   "brief":  { "prompt": "...", "targetSeconds": 35, "tone": "calm" },
   "script": { "hook": "...", "beats": [ { "id": "b1", "narration": "...",
                                           "onScreen": "...", "search": "..." } ] },
   "voice":  { "provider": "...", "voiceId": "...", "rate": 1.0 },
-  "footage":{ "b1": { "provider": "...", "assetId": "...", "in": 0.0, "out": 4.2 } },
+  // "footage" picks one of three shapes per beat — a stock clip (shown here),
+  // a generated clip, or a motion-graphics scene written as code. See §11.
+  "footage":{ "b1": { "source": "stock", "provider": "...", "assetId": "...",
+                       "in": 0.0, "out": 4.2, "credit": { "creator": "...", "pageUrl": "..." } } },
   "captions": { "style": "...", "position": "lower-third", "wordsPerCue": 3 },
   "format": { "width": 1080, "height": 1920, "fps": 30, "container": "mp4" }
 }
 ```
 
-Every field in that document is a row on the decision sheet.
+Every field in that document is a row on the decision sheet, except the metadata a fresh motion render records about itself (which pinned browser, runtime and encoder produced it) — that explains a pixel difference between two machines, but is not itself a decision.
 
 ## 6 · Pipeline
 
-Five stages. Each is an adapter slot, each writes into the plan, each declares what it depends on.
+Six stages. Each is an adapter slot, each writes into the plan, each declares what it depends on.
 
 ```
    prompt
@@ -108,24 +111,34 @@ Five stages. Each is an adapter slot, each writes into the plan, each declares w
       └──────────┬───────────────┘
                  ▼
             ┌─────────┐
+            │ FRAMES  │  normalises each beat's footage decision — a trimmed
+            └────┬────┘  stock clip, a generated clip, or a rendered
+                 │        motion-graphics scene — into one clip
+                 ▼
+            ┌─────────┐
             │ COMPOSE │
             └────┬────┘
                  ▼
             1080×1920 MP4
 ```
 
-**The dependency graph is the feature.** It is what makes an override cheap.
+`frames` exists in the plan schema and the dependency graph, tested against real edited plans; only `compose` has a runner that produces real output today (§11 — the other stages, `frames` included, are stubbed or unbuilt).
+
+**The dependency graph is the feature.** It is what makes an override cheap. Re-running one beat's `frames` output — because that beat's clip or animation changed — never re-renders every other beat.
 
 **Target for v1, not a measured result:**
 
 | Change this | Re-runs | Expected cost |
 |---|---|---|
 | Caption colour, size, position | compose | seconds, free |
-| Swap one clip | compose | seconds, free |
-| Crop or trim a clip | compose | seconds, free |
-| The search term for one beat | footage → compose | seconds, one lookup |
-| Voice, or speaking rate | voice → align → compose | tens of seconds |
-| Any script line | voice → align → compose (+ footage if the search term moved) | tens of seconds |
+| Swap one clip, or crop/trim it | frames (that beat) → compose | seconds, free |
+| Edit the text in one animated scene | frames (that beat) → compose | seconds, free |
+| The search term for one beat | footage → frames → compose | seconds, one lookup |
+| Ask for a different animation for one beat | footage → frames → compose | one model call + seconds |
+| Switch one beat from a stock clip to an animation | footage → frames → compose | one model call + seconds |
+| Switch one beat to generated video | footage → frames → compose | the provider's price, shown and confirmed first |
+| Voice, or speaking rate | voice → align → frames → compose | tens of seconds |
+| Any script line | voice → align → frames → compose (+ footage if the search term moved) | tens of seconds |
 | The prompt itself | everything | a full run |
 
 **No stage re-runs because an unrelated stage changed.** That rule is enforced by the graph, not by discipline — it is the difference between a decision sheet people use and one they are afraid of.
