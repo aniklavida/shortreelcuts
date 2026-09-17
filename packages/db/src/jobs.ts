@@ -25,6 +25,7 @@ export async function createJob(db: Database, input: JobInput): Promise<string> 
     input,
     plan: null,
     completedStages: [],
+    candidates: {},
   });
   return id;
 }
@@ -54,12 +55,14 @@ export async function recordStageCompletion(
   stage: Stage,
   planSoFar: unknown,
   previouslyCompleted: readonly Stage[],
+  candidatesSoFar: unknown = {},
 ): Promise<void> {
   await db.drizzle
     .update(jobs)
     .set({
       plan: planSoFar,
       completedStages: [...previouslyCompleted, stage],
+      candidates: candidatesSoFar,
       updatedAt: new Date(),
     })
     .where(eq(jobs.id, id));
