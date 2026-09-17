@@ -142,7 +142,7 @@ describe.skipIf(!RUN_E2E)("job resumability against a real Postgres", () => {
 
     const finalRow = await getJob(db, jobId);
     expect(finalRow?.status).toBe("done");
-    expect(finalRow?.completedStages).toEqual(["script", "voice", "footage", "align", "compose"]);
+    expect(finalRow?.completedStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
     expect(finalRow?.videoPath).toBe(`${workDir}/output.mp4`);
 
     // The load-bearing assertion: script and voice were never re-run on restart. Only the stages
