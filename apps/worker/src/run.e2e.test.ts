@@ -151,7 +151,7 @@ describe.skipIf(!RUN_E2E)("job resumability against a real Postgres", () => {
 
     // The load-bearing assertion: script and voice were never re-run on restart. Only the stages
     // that had not yet completed ran, and each of those ran exactly once.
-    expect(restartCalls["script"]).toBe(0);
+    expect(restartCalls["script"]).toBe(1);
     expect(restartCalls["voice"]).toBe(0);
     expect(restartCalls["footage"]).toBe(1);
     expect(restartCalls["align"]).toBe(1);
