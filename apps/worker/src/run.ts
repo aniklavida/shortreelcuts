@@ -39,18 +39,18 @@ async function runOneStage(
   stage: Stage,
   draft: Record<string, unknown>,
   workDir: string,
-): Promise<{ patch: Record<string, unknown>; videoPath?: string }> {
+): Promise<{ patch: Record<string, unknown>; candidates?: Record<string, unknown>; videoPath?: string }> {
   switch (stage) {
     case "script":
       return runners
         .script({ brief: draft["brief"] as Plan["brief"], seed: draft["seed"] as number })
-        .then((r) => ({ patch: r.patch }));
+        .then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "voice":
-      return runners.voice({ plan: draft as Plan }).then((r) => ({ patch: r.patch }));
+      return runners.voice({ plan: draft as Plan }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "footage":
-      return runners.footage({ plan: draft as Plan }).then((r) => ({ patch: r.patch }));
+      return runners.footage({ plan: draft as Plan }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "align":
-      return runners.align({ plan: draft as Plan }).then((r) => ({ patch: r.patch }));
+      return runners.align({ plan: draft as Plan }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "frames":
       // `@shortreelcuts/plan`'s graph added `frames` as its own stage
       // (`planVersion` 2 — research/PROPOSAL.md §4.1), so `STAGES` names it
@@ -58,10 +58,11 @@ async function runOneStage(
       // item 5) and `StageRunners` has no `frames` method to call. A no-op
       // patch keeps every job completing today, the same stand-in
       // `packages/sheet`'s `ProjectSession` uses for the same reason.
-      return Promise.resolve({ patch: {} });
+      return Promise.resolve({ patch: {}, candidates: {} });
     case "compose":
       return runners.compose({ plan: draft as Plan, workDir }).then((r) => ({
         patch: r.patch,
+        candidates: r.candidates,
         videoPath: r.video.path,
       }));
   }
@@ -93,6 +94,7 @@ export async function runJob(
   };
   const completed: Stage[] = [...((row.completedStages as Stage[] | null) ?? [])];
   const completedSet = new Set(completed);
+  let candidatesSoFar: Record<string, unknown> = (row.candidates as Record<string, unknown> | null) ?? {};
 
   try {
     for (const stage of STAGES) {
@@ -103,12 +105,15 @@ export async function runJob(
 
       events.onStageStart?.(jobId, stage);
       const start = Date.now();
-      const { patch, videoPath } = await runOneStage(runners, stage, draft, workDir);
+      const { patch, candidates, videoPath } = await runOneStage(runners, stage, draft, workDir);
       draft = { ...draft, ...patch };
+      if (candidates) {
+        candidatesSoFar = { ...candidatesSoFar, ...candidates };
+      }
       events.onStageComplete?.(jobId, stage, Date.now() - start);
 
       // Written before the next stage starts — see this file's header.
-      await recordStageCompletion(db, jobId, stage, draft, completed);
+      await recordStageCompletion(db, jobId, stage, draft, completed, candidatesSoFar);
       completed.push(stage);
       completedSet.add(stage);
 

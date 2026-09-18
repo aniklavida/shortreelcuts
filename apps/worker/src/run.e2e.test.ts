@@ -132,6 +132,10 @@ describe.skipIf(!RUN_E2E)("job resumability against a real Postgres", () => {
     expect(midProgress?.status).toBe("running");
     expect(midProgress?.completedStages).toEqual(["script", "voice"]);
     expect(midProgress?.videoPath).toBeNull();
+    const candidates = midProgress?.candidates as Record<string, unknown>;
+    expect(candidates).toBeDefined();
+    expect(Object.keys(candidates)).toContain("script.hook");
+    expect(Object.keys(candidates)).not.toContain("footage.b1"); // hasn't completed yet
     expect(stuckCalls["script"]).toBe(1);
     expect(stuckCalls["voice"]).toBe(1);
     expect(stuckCalls["footage"]).toBe(1); // called, but never returns
@@ -142,7 +146,7 @@ describe.skipIf(!RUN_E2E)("job resumability against a real Postgres", () => {
 
     const finalRow = await getJob(db, jobId);
     expect(finalRow?.status).toBe("done");
-    expect(finalRow?.completedStages).toEqual(["script", "voice", "footage", "align", "compose"]);
+    expect(finalRow?.completedStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
     expect(finalRow?.videoPath).toBe(`${workDir}/output.mp4`);
 
     // The load-bearing assertion: script and voice were never re-run on restart. Only the stages
@@ -170,6 +174,65 @@ describe.skipIf(!RUN_E2E)("job resumability against a real Postgres", () => {
     expect(secondCalls["align"]).toBe(0);
     expect(secondCalls["compose"]).toBe(0);
   });
+
+  it("kills a real operating-system process mid-job and restarts from the last completed stage", async () => {
+    workDir = await mkdtemp(join(tmpdir(), "shortreelcuts-worker-real-kill-"));
+    const sentinel = join(workDir, "resume-sentinel");
+    const brief = { prompt: "a video about deep sea vents", targetSeconds: 24, tone: "calm" };
+    
+    const jobId = await createJob(db, { brief, seed: 42 });
+
+    const { spawn } = await import("node:child_process");
+    // spawn vitest to run the victim file. Use detached to create a new process group.
+    const child = spawn("npx", ["vitest", "run", "apps/worker/src/kill-victim.fixture.test.ts"], {
+      env: {
+        ...process.env,
+        VICTIM_JOB_ID: jobId,
+        VICTIM_SENTINEL: sentinel,
+        VICTIM_WORKDIR: workDir,
+        SHORTREELCUTS_DATABASE_URL: DATABASE_URL,
+      },
+      detached: true,
+      stdio: "ignore",
+    });
+
+    // wait until the database row genuinely shows ["script", "voice"]
+    await vi.waitFor(async () => {
+      const row = await getJob(db, jobId);
+      expect(row?.completedStages).toEqual(["script", "voice"]);
+    }, { timeout: 10000, interval: 100 });
+
+    // Send SIGKILL to the whole process group
+    if (child.pid) {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch (e) {
+        // ignore if already dead
+      }
+    }
+    
+    // Wait for the exit event to ensure it's fully gone
+    await new Promise<void>((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) return resolve();
+      child.on("exit", () => resolve());
+    });
+
+    // Restart: run the job again in this parent process
+    const { runners: restartRunners, calls: restartCalls } = makeSpiedRunners();
+    await runJob(db, workDir, restartRunners, jobId);
+
+    const finalRow = await getJob(db, jobId);
+    expect(finalRow?.status).toBe("done");
+    expect(finalRow?.completedStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
+    expect(finalRow?.videoPath).toBe(`${workDir}/output.mp4`);
+
+    // script and voice were already done, so they should not re-run
+    expect(restartCalls["script"]).toBe(0);
+    expect(restartCalls["voice"]).toBe(0);
+    expect(restartCalls["footage"]).toBe(1);
+    expect(restartCalls["align"]).toBe(1);
+    expect(restartCalls["compose"]).toBe(1);
+  }, 15000);
 
   it("the job API creates a job, enqueues it, and the queued worker resumes and completes it", async () => {
     workDir = await mkdtemp(join(tmpdir(), "shortreelcuts-worker-"));

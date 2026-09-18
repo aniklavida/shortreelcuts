@@ -92,11 +92,11 @@ describe.skipIf(!RUN_E2E)("resumeIncompleteJobs against a real Postgres", () => 
 
     const pendingRow = await getJob(db, pendingId);
     expect(pendingRow?.status).toBe("done");
-    expect(pendingRow?.completedStages).toEqual(["script", "voice", "footage", "align", "compose"]);
+    expect(pendingRow?.completedStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
 
     const partialRow = await getJob(db, partialId);
     expect(partialRow?.status).toBe("done");
-    expect(partialRow?.completedStages).toEqual(["script", "voice", "footage", "align", "compose"]);
+    expect(partialRow?.completedStages).toEqual(["script", "voice", "footage", "align", "frames", "compose"]);
 
     const doneAfter = await getJob(db, doneId);
     expect(doneAfter?.updatedAt).toEqual(doneBefore?.updatedAt);
