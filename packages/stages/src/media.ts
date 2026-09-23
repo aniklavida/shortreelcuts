@@ -48,13 +48,19 @@ function narrationSecondsFor(plan: Plan, beatId: string): number {
   return Math.max(1.0, last?.endSeconds ?? 1.0);
 }
 
-async function makeColorClip(path: string, colorHex: string, durationSeconds: number, ffmpegPath: string): Promise<void> {
+async function makeColorClip(
+  path: string,
+  colorHex: string,
+  durationSeconds: number,
+  format: Plan["format"],
+  ffmpegPath: string,
+): Promise<void> {
   await runFfmpeg(ffmpegPath, [
     ...DETERMINISTIC_FLAGS,
     "-f",
     "lavfi",
     "-i",
-    `color=c=${colorHex}:s=1080x1920:r=30:d=${durationSeconds.toFixed(3)}`,
+    `color=c=${colorHex}:s=${format.width}x${format.height}:r=${format.fps}:d=${durationSeconds.toFixed(3)}`,
     "-pix_fmt",
     "yuv420p",
     "-c:v",
@@ -98,7 +104,7 @@ export async function synthesizeStubMedia(plan: Plan, workDir: string, ffmpegPat
     const footagePath = join(workDir, `${beat.id}-footage.mp4`);
     const narrationPath = join(workDir, `${beat.id}-narration.wav`);
     await Promise.all([
-      makeColorClip(footagePath, colorFor(beat.id), footageSeconds, ffmpegPath),
+      makeColorClip(footagePath, colorFor(beat.id), footageSeconds, plan.format, ffmpegPath),
       makeToneClip(narrationPath, toneFor(beat.id), narrationSeconds, ffmpegPath),
     ]);
     footage[beat.id] = footagePath;

@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { FORMAT_PRESETS, type FormatPlan } from "@shortreelcuts/plan";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resolveFfmpegPath, resolveFfprobePath } from "../binaries.js";
 import { runFfprobe } from "../process.js";
@@ -102,6 +103,54 @@ describe.skipIf(!RUN_E2E)("render() against the hand-written plan fixture", () =
       expect(srt).toContain("00:00:00,000 -->");
     },
     60_000,
+  );
+
+  it(
+    "renders a 16:9 plan at 1920x1080 and a 1:1 plan at 1080x1080",
+    async () => {
+      // The schema accepting a shape is not the same as the encoder emitting
+      // it. This renders the real fixture plan at the two non-default shapes
+      // and probes the finished file, so the assertion is on actual output
+      // pixels — the footage crop/framing and the final dimensions both come
+      // from `plan.format`.
+      const basePlan = await loadHandWrittenPlan();
+      const cases = [
+        { ratio: "16:9" as const, width: 1920, height: 1080 },
+        { ratio: "1:1" as const, width: 1080, height: 1080 },
+      ];
+
+      for (const { ratio, width, height } of cases) {
+        const runDir = join(workDir, `format-${ratio.replace(":", "x")}`);
+        await mkdir(runDir, { recursive: true });
+        const format: FormatPlan = { ...FORMAT_PRESETS[ratio], fps: 30, container: "mp4" };
+        const plan = { ...basePlan, format };
+        const media = await synthesizeFixtureMedia(runDir, ffmpegPath, format);
+        const runOutputPath = join(runDir, "out.mp4");
+
+        const video = await render(plan, media, {
+          outputPath: runOutputPath,
+          ffmpegPath,
+          ffprobePath,
+          transitionSeconds: 0.4,
+        });
+
+        expect(video.width).toBe(width);
+        expect(video.height).toBe(height);
+
+        const probeJson = await runFfprobe(ffprobePath, [
+          "-print_format",
+          "json",
+          "-show_format",
+          "-show_streams",
+          runOutputPath,
+        ]);
+        const probed = JSON.parse(probeJson) as FfprobeOutput;
+        const videoStream = probed.streams.find((stream) => stream.codec_type === "video");
+        expect(videoStream?.width).toBe(width);
+        expect(videoStream?.height).toBe(height);
+      }
+    },
+    120_000,
   );
 
   it(

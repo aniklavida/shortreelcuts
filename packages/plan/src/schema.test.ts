@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_PLAN_VERSION, parsePlan, PlanSchema } from "./schema.js";
+import {
+  aspectRatioOf,
+  CURRENT_PLAN_VERSION,
+  DEFAULT_ASPECT_RATIO,
+  FORMAT_PRESETS,
+  parsePlan,
+  PlanSchema,
+} from "./schema.js";
 import { makeFixturePlan } from "./testing/fixtures.js";
 
 describe("PlanSchema", () => {
@@ -127,11 +134,27 @@ describe("PlanSchema", () => {
     ).not.toThrow();
   });
 
-  it("rejects an output format other than the v1 default", () => {
+  it("accepts the 16:9 and 1:1 output shapes as well as the default 9:16", () => {
+    for (const ratio of ["9:16", "16:9", "1:1"] as const) {
+      const plan = makeFixturePlan();
+      expect(() => parsePlan({ ...plan, format: { ...plan.format, ...FORMAT_PRESETS[ratio] } })).not.toThrow();
+    }
+  });
+
+  it("rejects an output shape that is not one of the supported aspect ratios", () => {
     const plan = makeFixturePlan();
-    expect(() =>
-      parsePlan({ ...plan, format: { ...plan.format, width: 1920, height: 1080 } }),
-    ).toThrow();
+    // 720×1280 is the 9:16 ratio but not a canonical shape this project renders.
+    expect(() => parsePlan({ ...plan, format: { ...plan.format, width: 720, height: 1280 } })).toThrow(
+      /unsupported output shape 720x1280/,
+    );
+  });
+
+  it("derives the aspect ratio from a format's dimensions, with 9:16 as the default", () => {
+    expect(DEFAULT_ASPECT_RATIO).toBe("9:16");
+    expect(aspectRatioOf(FORMAT_PRESETS["9:16"])).toBe("9:16");
+    expect(aspectRatioOf(FORMAT_PRESETS["16:9"])).toBe("16:9");
+    expect(aspectRatioOf(FORMAT_PRESETS["1:1"])).toBe("1:1");
+    expect(aspectRatioOf({ width: 720, height: 1280 })).toBeUndefined();
   });
 
   it("rejects a plan with no beats", () => {

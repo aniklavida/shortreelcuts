@@ -68,13 +68,19 @@ const DETERMINISTIC_FLAGS = [
   "1",
 ];
 
-async function makeColorClip(path: string, colorHex: string, durationSeconds: number, ffmpegPath: string): Promise<void> {
+async function makeColorClip(
+  path: string,
+  colorHex: string,
+  durationSeconds: number,
+  size: { width: number; height: number },
+  ffmpegPath: string,
+): Promise<void> {
   await runFfmpeg(ffmpegPath, [
     ...DETERMINISTIC_FLAGS,
     "-f",
     "lavfi",
     "-i",
-    `color=c=${colorHex}:s=1080x1920:r=30:d=${durationSeconds}`,
+    `color=c=${colorHex}:s=${size.width}x${size.height}:r=30:d=${durationSeconds}`,
     "-pix_fmt",
     "yuv420p",
     "-c:v",
@@ -103,9 +109,16 @@ async function makeToneClip(path: string, frequencyHz: number, durationSeconds: 
 /**
  * Writes synthetic footage, narration and music files under `outDir` for
  * every beat `hand-written-plan.json` refers to, and returns the
- * `ResolvedMedia` that points at them.
+ * `ResolvedMedia` that points at them. Footage is synthesized at `size`
+ * (default 1080×1920, matching the fixture plan's own format) so a test
+ * that renders a different shape can source footage of that shape rather
+ * than relying on `compose`'s scale/crop alone.
  */
-export async function synthesizeFixtureMedia(outDir: string, ffmpegPath: string): Promise<ResolvedMedia> {
+export async function synthesizeFixtureMedia(
+  outDir: string,
+  ffmpegPath: string,
+  size: { width: number; height: number } = { width: 1080, height: 1920 },
+): Promise<ResolvedMedia> {
   const footage: Record<string, string> = {};
   const narration: Record<string, string> = {};
 
@@ -113,7 +126,7 @@ export async function synthesizeFixtureMedia(outDir: string, ffmpegPath: string)
     const footagePath = join(outDir, `${beatId}-footage.mp4`);
     const narrationPath = join(outDir, `${beatId}-narration.wav`);
     await Promise.all([
-      makeColorClip(footagePath, spec.colorHex, spec.footageSourceSeconds, ffmpegPath),
+      makeColorClip(footagePath, spec.colorHex, spec.footageSourceSeconds, size, ffmpegPath),
       makeToneClip(narrationPath, spec.toneHz, spec.narrationSeconds, ffmpegPath),
     ]);
     footage[beatId] = footagePath;

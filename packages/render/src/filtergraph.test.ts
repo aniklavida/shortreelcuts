@@ -1,4 +1,4 @@
-import type { FormatPlan, MusicPlan } from "@shortreelcuts/plan";
+import { FORMAT_PRESETS, type FormatPlan, type MusicPlan } from "@shortreelcuts/plan";
 import { describe, expect, it } from "vitest";
 import { applyCaptionsBurnIn, buildAudioGraph, buildVideoGraph, escapeFilterPath } from "./filtergraph.js";
 import type { Timeline } from "./timeline.js";
@@ -136,6 +136,48 @@ describe("buildVideoGraph", () => {
 
     const graph = buildVideoGraph(timeline, FORMAT, 5);
     expect(graph.filterLines[0]?.startsWith("[5:v]")).toBe(true);
+  });
+
+  it("scales and crops to the plan's landscape (16:9) shape, not a fixed vertical one", () => {
+    const timeline = timelineOf([
+      {
+        beatId: "b1",
+        footagePath: "/media/f1.mp4",
+        sourceInSeconds: 0,
+        sourceOutSeconds: 4,
+        narrationPath: "/media/n1.wav",
+        narrationDurationSeconds: 4,
+        sceneDurationSeconds: 4,
+        holdLastFrameSeconds: 0,
+        startOffsetSeconds: 0,
+      },
+    ]);
+
+    const graph = buildVideoGraph(timeline, { ...FORMAT_PRESETS["16:9"], fps: 30, container: "mp4" });
+
+    expect(graph.filterLines[0]).toContain("scale=w=1920:h=1080:force_original_aspect_ratio=increase");
+    expect(graph.filterLines[0]).toContain("crop=1920:1080");
+  });
+
+  it("scales and crops to the plan's square (1:1) shape", () => {
+    const timeline = timelineOf([
+      {
+        beatId: "b1",
+        footagePath: "/media/f1.mp4",
+        sourceInSeconds: 0,
+        sourceOutSeconds: 4,
+        narrationPath: "/media/n1.wav",
+        narrationDurationSeconds: 4,
+        sceneDurationSeconds: 4,
+        holdLastFrameSeconds: 0,
+        startOffsetSeconds: 0,
+      },
+    ]);
+
+    const graph = buildVideoGraph(timeline, { ...FORMAT_PRESETS["1:1"], fps: 30, container: "mp4" });
+
+    expect(graph.filterLines[0]).toContain("scale=w=1080:h=1080:force_original_aspect_ratio=increase");
+    expect(graph.filterLines[0]).toContain("crop=1080:1080");
   });
 });
 
