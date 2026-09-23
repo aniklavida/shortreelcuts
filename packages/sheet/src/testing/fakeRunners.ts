@@ -7,8 +7,8 @@
  *
  * `session.e2e.test.ts` is the one place `compose` is the real thing.
  */
-import type { ComposeRunResult, StageRunners } from "@shortreelcuts/stages";
-import { runAlign, runFootage, runScript, runVoice, withComposeDefaults } from "@shortreelcuts/stages";
+import type { ComposeRunResult, FramesRunResult, StageRunners } from "@shortreelcuts/stages";
+import { runAlign, runFootage, runFrames, runScript, runVoice, withComposeDefaults } from "@shortreelcuts/stages";
 import { vi, type Mock } from "vitest";
 
 function fakeVideo(path: string) {
@@ -27,11 +27,30 @@ export function makeFakeRunners(): FakeStageRunners {
     };
   });
 
+  const frames = vi.fn(async (input: Parameters<StageRunners["frames"]>[0]): Promise<FramesRunResult> => {
+    return {
+      patch: {
+        render: {
+          chromium: "chrome-headless-shell@153.0.8010.12",
+          runtime: "srcuts-motion@1",
+          ffmpeg: "bitexact",
+        },
+      },
+      candidates: {},
+      clips: Object.fromEntries(
+        input.plan.script.beats.map((b) => [b.id, `${input.workDir}/frames/${b.id}.mp4`]),
+      ),
+      renderedBeats: input.plan.script.beats.map((b) => b.id),
+    };
+  });
+
   return {
     script: vi.fn(runScript),
     voice: vi.fn(runVoice),
     footage: vi.fn(runFootage),
     align: vi.fn(runAlign),
+    frames,
     compose,
   };
 }
+

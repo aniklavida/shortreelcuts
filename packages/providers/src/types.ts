@@ -12,7 +12,7 @@
  * nothing in this package creates. `connection.ts` never produces one —
  * only `"byok"` and `"local"` are resolved today.
  */
-import type { Brief, ScriptPlan } from "@shortreelcuts/plan";
+import type { Brief, FootageClip, GeneratedFootage, MotionFootage, ScriptPlan, StockFootage } from "@shortreelcuts/plan";
 
 export type ModelConnectionKind = "byok" | "oauth" | "local";
 
@@ -91,3 +91,74 @@ export interface VoiceProvider {
   voices(): Promise<VoiceDescriptor[]>;
   speak(lines: readonly NarrationLine[], choice: VoiceChoice): Promise<AudioTrack[]>;
 }
+
+export type FootageSource = "stock" | "generated" | "motion";
+
+export interface BeatContext {
+  readonly beatId: string;
+  readonly narration: string;
+  readonly onScreen: string;
+  readonly search: string;
+  readonly style?: Record<string, unknown>;
+  readonly format: {
+    readonly width: number;
+    readonly height: number;
+    readonly fps: number;
+  };
+  readonly targetSeconds: number;
+}
+
+export interface CostEstimate {
+  readonly kind: "free" | "tokens" | "per-second" | "per-clip";
+  readonly amount?: number;
+  readonly currency?: string;
+  readonly localRenderSeconds?: number;
+  readonly requiresConfirmation: boolean;
+  readonly basis: string;
+}
+
+export interface FootageCapabilities {
+  readonly source: FootageSource;
+  readonly maxSeconds?: number;
+  readonly aspectRatios: readonly string[];
+  readonly producesAudio: boolean;
+  readonly deterministicOutput: boolean;
+  readonly attribution?: {
+    readonly required: boolean;
+    readonly display: string;
+  };
+}
+
+export interface Candidate<S extends FootageSource = FootageSource, C = unknown> {
+  readonly id: string;
+  readonly label: string;
+  readonly source: S;
+  readonly data: C;
+}
+
+export interface MaterialiseIO {
+  readonly media: MediaSink;
+  readonly signal?: AbortSignal;
+  readonly onProgress?: (fraction: number, note: string) => void;
+}
+
+/**
+ * The unified footage adapter interface all three footage sources
+ * (stock, AI-generated video, motion graphics as code) implement.
+ *
+ * Rules:
+ * - A provider returns candidates, never a final choice.
+ * - Every provider declares its capabilities.
+ * - No provider touches the database, the queue or the filesystem directly.
+ */
+export interface FootageAdapter<S extends FootageSource = FootageSource, C = unknown, D = FootageClip> {
+  readonly id: string;
+  readonly source: S;
+  capabilities(): Promise<FootageCapabilities>;
+  propose(beat: BeatContext, count: number, signal?: AbortSignal): Promise<Candidate<S, C>[]>;
+  estimate(candidate: Candidate<S, C>): CostEstimate;
+  materialise(candidate: Candidate<S, C>, io: MaterialiseIO): Promise<D>;
+}
+
+export type { FootageClip, GeneratedFootage, MotionFootage, StockFootage };
+

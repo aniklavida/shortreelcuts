@@ -12,7 +12,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runAlign, runFootage, runScript, runVoice, type ComposeRunResult, type StageRunners } from "@shortreelcuts/stages";
+import { runAlign, runFootage, runFrames, runScript, runVoice, type ComposeRunResult, type StageRunners } from "@shortreelcuts/stages";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { connect, createJob, getJob, runMigrations, type Database } from "@shortreelcuts/db";
 import { resumeIncompleteJobs } from "./resume.js";
@@ -30,6 +30,7 @@ function makeWorkingRunners(): StageRunners {
     voice: runVoice,
     footage: runFootage,
     align: runAlign,
+    frames: runFrames,
     compose: (input): Promise<ComposeRunResult> => {
       const plan = input.plan;
       return Promise.resolve({

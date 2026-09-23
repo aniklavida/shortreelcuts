@@ -24,7 +24,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runAlign, runFootage, runScript, runVoice, type ComposeRunResult, type StageRunners } from "@shortreelcuts/stages";
+import { runAlign, runFootage, runFrames, runScript, runVoice, type ComposeRunResult, type StageRunners } from "@shortreelcuts/stages";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { connect, createJob, getJob, runMigrations, type Database } from "@shortreelcuts/db";
 import type { PgBoss } from "pg-boss";
@@ -41,7 +41,7 @@ function fakeVideo(path: string) {
 
 /** Real script/voice/footage/align (fast, no I/O) so resumability is proven against the actual stage logic, plus a fake compose that skips ffmpeg — the same reasoning `packages/sheet`'s own test doubles give for doing this. */
 function makeSpiedRunners(): { runners: StageRunners; calls: Record<string, number> } {
-  const calls: Record<string, number> = { script: 0, voice: 0, footage: 0, align: 0, compose: 0 };
+  const calls: Record<string, number> = { script: 0, voice: 0, footage: 0, align: 0, frames: 0, compose: 0 };
   return {
     calls,
     runners: {
@@ -60,6 +60,10 @@ function makeSpiedRunners(): { runners: StageRunners; calls: Record<string, numb
       align: (input) => {
         calls["align"]!++;
         return runAlign(input);
+      },
+      frames: (input) => {
+        calls["frames"]!++;
+        return runFrames(input);
       },
       compose: (input): Promise<ComposeRunResult> => {
         calls["compose"]!++;

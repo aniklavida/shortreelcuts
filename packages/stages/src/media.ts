@@ -19,7 +19,7 @@ import { join } from "node:path";
 import type { Plan } from "@shortreelcuts/plan";
 import { resolveFfmpegPath, runFfmpeg, type ResolvedMedia } from "@shortreelcuts/render";
 
-const DETERMINISTIC_FLAGS = [
+export const DETERMINISTIC_FLAGS = [
   "-fflags",
   "+bitexact",
   "-flags:v",
@@ -30,7 +30,7 @@ const DETERMINISTIC_FLAGS = [
   "1",
 ];
 
-function colorFor(beatId: string): string {
+export function colorFor(beatId: string): string {
   let hash = 0;
   for (const ch of beatId) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return `0x${(hash & 0xffffff).toString(16).padStart(6, "0")}`;
@@ -48,19 +48,20 @@ function narrationSecondsFor(plan: Plan, beatId: string): number {
   return Math.max(1.0, last?.endSeconds ?? 1.0);
 }
 
-async function makeColorClip(
+export async function makeColorClip(
   path: string,
   colorHex: string,
   durationSeconds: number,
-  format: Plan["format"],
+  format: Plan["format"] | undefined,
   ffmpegPath: string,
 ): Promise<void> {
+  const resolvedFormat = format ?? { width: 1080, height: 1920, fps: 30 };
   await runFfmpeg(ffmpegPath, [
     ...DETERMINISTIC_FLAGS,
     "-f",
     "lavfi",
     "-i",
-    `color=c=${colorHex}:s=${format.width}x${format.height}:r=${format.fps}:d=${durationSeconds.toFixed(3)}`,
+    `color=c=${colorHex}:s=${resolvedFormat.width}x${resolvedFormat.height}:r=${resolvedFormat.fps}:d=${durationSeconds.toFixed(3)}`,
     "-pix_fmt",
     "yuv420p",
     "-c:v",

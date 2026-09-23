@@ -20,6 +20,21 @@ export function makePreviewRunners(): StageRunners {
     voice: runVoice,
     footage: runFootage,
     align: runAlign,
+    frames: async (input) => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return {
+        patch: {
+          render: {
+            chromium: "chrome-headless-shell@153.0.8010.12",
+            runtime: "srcuts-motion@1",
+            ffmpeg: "bitexact",
+          },
+        },
+        candidates: {},
+        clips: Object.fromEntries(input.plan.script.beats.map((b) => [b.id, `${input.workDir}/frames/${b.id}.mp4`])),
+        renderedBeats: input.plan.script.beats.map((b) => b.id),
+      };
+    },
     compose: async (input): Promise<ComposeRunResult> => {
       // A little artificial delay so the progress strip is visible instead of instant.
       await new Promise((resolve) => setTimeout(resolve, 400));

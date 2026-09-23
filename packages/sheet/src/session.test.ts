@@ -36,12 +36,13 @@ describe("ProjectSession.generate", () => {
     });
     await session.generate({ brief, seed: 7 });
 
-    expect(new Set(order)).toEqual(new Set(["script", "voice", "footage", "align", "compose"]));
+    expect(new Set(order)).toEqual(new Set(["script", "voice", "footage", "align", "frames", "compose"]));
     expect(order.indexOf("script")).toBeLessThan(order.indexOf("voice"));
     expect(order.indexOf("script")).toBeLessThan(order.indexOf("footage"));
     expect(order.indexOf("voice")).toBeLessThan(order.indexOf("align"));
-    expect(order.indexOf("footage")).toBeLessThan(order.indexOf("compose"));
-    expect(order.indexOf("align")).toBeLessThan(order.indexOf("compose"));
+    expect(order.indexOf("footage")).toBeLessThan(order.indexOf("frames"));
+    expect(order.indexOf("align")).toBeLessThan(order.indexOf("frames"));
+    expect(order.indexOf("frames")).toBeLessThan(order.indexOf("compose"));
   });
 
   it("produces a valid plan and records it as the first version", async () => {

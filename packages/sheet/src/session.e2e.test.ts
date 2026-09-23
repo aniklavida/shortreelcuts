@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { invalidate } from "@shortreelcuts/plan";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ProjectSession } from "./session.js";
-import { runAlign, runCompose, runFootage, runScript, runVoice, type StageRunners } from "@shortreelcuts/stages";
+import { runAlign, runCompose, runFootage, runFrames, runScript, runVoice, type StageRunners } from "@shortreelcuts/stages";
 
 const RUN_E2E = process.env["SHORTREELCUTS_RENDER_E2E"] === "1";
 
@@ -38,7 +38,14 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
   it(
     "generate() produces a real, playable MP4 via the real compose stage",
     async () => {
-      runners = { script: vi.fn(runScript), voice: vi.fn(runVoice), footage: vi.fn(runFootage), align: vi.fn(runAlign), compose: vi.fn(runCompose) };
+      runners = {
+        script: vi.fn(runScript),
+        voice: vi.fn(runVoice),
+        footage: vi.fn(runFootage),
+        align: vi.fn(runAlign),
+        frames: vi.fn(runFrames),
+        compose: vi.fn(runCompose),
+      };
       session = new ProjectSession({ runners, workDir });
 
       const plan = await session.generate({ brief: { prompt: "a video about why leaves change colour", targetSeconds: 20, tone: "calm" }, seed: 99 });
@@ -69,6 +76,7 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
       expect(runners.footage).not.toHaveBeenCalled();
       expect(runners.voice).toHaveBeenCalledTimes(1);
       expect(runners.align).toHaveBeenCalledTimes(1);
+      expect(runners.frames).toHaveBeenCalledTimes(1);
       expect(runners.compose).toHaveBeenCalledTimes(1); // a real, second ffmpeg render
 
       expect(result.plan.voice.voiceId).toBe("confident-male");
@@ -92,6 +100,7 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
       expect(runners.voice).not.toHaveBeenCalled();
       expect(runners.footage).not.toHaveBeenCalled();
       expect(runners.align).not.toHaveBeenCalled();
+      expect(runners.frames).toHaveBeenCalledTimes(1);
       expect(runners.compose).toHaveBeenCalledTimes(1);
 
       const info = await stat(session.lastVideo!.path);
@@ -104,7 +113,14 @@ describe.skipIf(!RUN_E2E)("ProjectSession against the real compose stage", () =>
     "reports the cost estimate before the real compose stage starts",
     async () => {
       const log: string[] = [];
-      const observedRunners = { script: vi.fn(runScript), voice: vi.fn(runVoice), footage: vi.fn(runFootage), align: vi.fn(runAlign), compose: vi.fn(runCompose) };
+      const observedRunners = {
+        script: vi.fn(runScript),
+        voice: vi.fn(runVoice),
+        footage: vi.fn(runFootage),
+        align: vi.fn(runAlign),
+        frames: vi.fn(runFrames),
+        compose: vi.fn(runCompose),
+      };
       const observedSession = new ProjectSession({
         runners: observedRunners,
         workDir,

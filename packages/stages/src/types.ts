@@ -16,8 +16,8 @@
  * exactly that shape to show the candidates a stage rejected alongside
  * the one it chose (`docs/SPEC.md` §8).
  */
-import type { AlignPlan, Brief, FootagePlan, Plan, ScriptPlan, Stage, VoicePlan } from "@shortreelcuts/plan";
-import type { VideoFile } from "@shortreelcuts/render";
+import type { AlignPlan, Brief, FootagePlan, Plan, ScopedBeats, ScriptPlan, Stage, VoicePlan } from "@shortreelcuts/plan";
+import type { ResolvedMedia, VideoFile } from "@shortreelcuts/render";
 
 /** One alternative a stage considered. Never the plan's own shape — display data only. */
 export interface DecisionCandidate {
@@ -48,9 +48,27 @@ export interface PlanSoFarInput {
   readonly plan: Plan;
 }
 
+export interface FramesRunInput extends PlanSoFarInput {
+  /** Directory for intermediate clips and cache. */
+  readonly workDir: string;
+  /** Restricts rendering to specific beats, or "all" (default). */
+  readonly scopedBeats?: ScopedBeats;
+  /** In-memory or pre-resolved clip mapping to reuse. */
+  readonly clipCache?: Readonly<Record<string, string>>;
+}
+
+export interface FramesRunResult extends StageResult<{ render?: Plan["render"] }> {
+  /** Map of beatId -> normalized intermediate clip file path (1080x1920 30fps). */
+  readonly clips: Readonly<Record<string, string>>;
+  /** Which beats actually had their frames rendered (vs reused from cache). */
+  readonly renderedBeats: readonly string[];
+}
+
 export interface ComposeRunInput extends PlanSoFarInput {
   /** Scratch directory for synthesized stand-in media and the rendered file. Not persisted by this package. */
   readonly workDir: string;
+  /** Pre-resolved media (e.g. normalized footage clips from the frames stage). */
+  readonly media?: Partial<ResolvedMedia>;
 }
 
 export interface ComposeRunResult extends StageResult<Pick<Plan, "captions" | "music" | "format">> {
@@ -69,7 +87,8 @@ export interface StageRunners {
   voice(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "voice">>>;
   footage(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "footage">>>;
   align(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "align">>>;
+  frames(input: FramesRunInput): Promise<FramesRunResult>;
   compose(input: ComposeRunInput): Promise<ComposeRunResult>;
 }
 
-export type { AlignPlan, FootagePlan, Plan, ScriptPlan, Stage, VoicePlan };
+export type { AlignPlan, FootagePlan, Plan, ScopedBeats, ScriptPlan, Stage, VoicePlan };
