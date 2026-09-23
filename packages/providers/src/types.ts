@@ -30,7 +30,27 @@ export interface ScriptProvider {
   generate(brief: Brief, seed: number): Promise<ScriptPlan>;
 }
 
-/** Minimal shapes for the voice slot's interface — no `VoiceProvider` implementation exists yet; see this package's README-equivalent note in `index.ts`. */
+/**
+ * A `VoiceConnection` is resolved from the environment only, the same rule
+ * `ModelConnection` follows (`connection.ts`, `docs/SPEC.md` §16). It is a
+ * separate type from `ModelConnection` on purpose: the script model and the
+ * speech model are two different things a self-hoster may connect to two
+ * different places, so they get two sets of environment variables rather
+ * than sharing one.
+ */
+export interface VoiceConnection {
+  readonly kind: ModelConnectionKind;
+  /** An OpenAI-audio-speech-compatible base URL. A hosted BYOK provider, an OAuth-reached subscription and a local server the self-hoster already runs (their own Piper/Coqui/other instance, behind a compatible API) all expose this same request shape. */
+  readonly baseURL: string;
+  /** The speech model to request. */
+  readonly model: string;
+  /** Absent for a local connection. Never logged and never written into a `Plan` — see `connection.ts` and the provider that consumes this. */
+  readonly apiKey?: string;
+  /** The voice ids this endpoint exposes, for the override control (`docs/SPEC.md` §7 capability declaration). Not credentials — safe to surface. */
+  readonly voiceIds: readonly string[];
+}
+
+/** The voice slot's interface — no `VoiceProvider` implementation ships an engine; see `voice/openAiCompatible.ts`. */
 export interface VoiceDescriptor {
   readonly id: string;
   readonly label: string;
@@ -46,9 +66,23 @@ export interface VoiceChoice {
   readonly rate: number;
 }
 
+/**
+ * A write-only destination for media bytes. `docs/SPEC.md` §7.3: "No
+ * provider touches the database, the queue or the filesystem. In, out, and
+ * a `MediaStore` handle if it needs bytes." A provider hands bytes to this
+ * and receives an opaque key back; it never learns or chooses where they
+ * landed, which is what keeps the second implementation of a slot from
+ * being a rewrite. A `MediaStore` implementing this is the caller's job.
+ */
+export interface MediaSink {
+  /** Stores the bytes and returns a stable key they can later be read back under. */
+  put(bytes: Uint8Array, contentType: string): Promise<string>;
+}
+
 export interface AudioTrack {
   readonly lineId: string;
-  readonly path: string;
+  /** The `MediaSink` key the bytes were stored under — never a filesystem path (`docs/SPEC.md` §7.3). */
+  readonly mediaKey: string;
   readonly durationSeconds: number;
 }
 
