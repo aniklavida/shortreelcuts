@@ -8,7 +8,7 @@
  * (spies that count calls, or a synthetic-media compose) without the
  * job-running logic in `run.ts` knowing the difference.
  */
-import { runAlign, runCompose, runFootage, runScript, runVoice } from "@shortreelcuts/stages";
+import { runAlign, runCompose, runFootage, runFrames, runScript, runVoice } from "@shortreelcuts/stages";
 import type { StageRunners } from "@shortreelcuts/stages";
 
 export function defaultRunners(): StageRunners {
@@ -17,6 +17,8 @@ export function defaultRunners(): StageRunners {
     voice: runVoice,
     footage: runFootage,
     align: runAlign,
+    frames: runFrames,
     compose: runCompose,
   };
 }
+

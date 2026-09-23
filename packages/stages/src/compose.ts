@@ -23,7 +23,19 @@ export { withComposeDefaults } from "./composeDefaults.js";
 
 export async function runCompose(input: ComposeRunInput): Promise<ComposeRunResult> {
   const plan = withComposeDefaults(input.plan);
-  const media = await synthesizeStubMedia(plan, join(input.workDir, "media"));
+  const stubMedia = await synthesizeStubMedia(plan, join(input.workDir, "media"));
+  const media = {
+    ...stubMedia,
+    footage: {
+      ...stubMedia.footage,
+      ...(input.media?.footage ?? {}),
+    },
+    narration: {
+      ...stubMedia.narration,
+      ...(input.media?.narration ?? {}),
+    },
+    ...(input.media?.music ? { music: input.media.music } : {}),
+  };
 
   const outputPath = join(input.workDir, "output.mp4");
   const video = await render(plan, media, { outputPath });

@@ -20,7 +20,7 @@
 import { test } from "vitest";
 import { connect } from "@shortreelcuts/db";
 import { existsSync } from "node:fs";
-import { runAlign, runScript, runVoice } from "@shortreelcuts/stages";
+import { runAlign, runFrames, runScript, runVoice } from "@shortreelcuts/stages";
 import type { ComposeRunResult, FootagePlan, Plan } from "@shortreelcuts/stages";
 import { runJob } from "./run.js";
 
@@ -45,6 +45,7 @@ test.skipIf(!jobId || !sentinel || !dbUrl)("victim", async () => {
           return { patch: { footage: {} as FootagePlan }, candidates: {} };
         },
         align: runAlign,
+        frames: runFrames,
         // Never reached: the parent kills this process while `footage` is parked.
         compose: (input): Promise<ComposeRunResult> =>
           Promise.resolve({

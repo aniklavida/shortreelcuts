@@ -155,8 +155,18 @@ export class ProjectSession {
     draft = { ...draft, ...alignResult.patch };
     this.recordCandidates(alignResult.candidates);
 
+    const framesResult = await timed("frames", this.events, () =>
+      this.runners.frames({ plan: draft as Plan, workDir: this.workDir }),
+    );
+    draft = { ...draft, ...framesResult.patch };
+    this.recordCandidates(framesResult.candidates);
+
     const composeResult = await timed("compose", this.events, () =>
-      this.runners.compose({ plan: draft as Plan, workDir: this.workDir }),
+      this.runners.compose({
+        plan: draft as Plan,
+        workDir: this.workDir,
+        media: { footage: framesResult.clips },
+      }),
     );
     draft = { ...draft, ...composeResult.patch };
     this.recordCandidates(composeResult.candidates);
@@ -212,14 +222,7 @@ export class ProjectSession {
           case "align":
             return this.runners.align({ plan: draft });
           case "frames":
-            // `@shortreelcuts/plan`'s graph added `frames` as its own stage
-            // (`docs/SPEC.md` §6) so `invalidate()` can say precisely what a
-            // footage change actually costs, but no runner for it exists
-            // yet: there is no `StageRunners.frames` to call. Treating it
-            // as a no-op keeps every override working today, the same way
-            // `compose`'s own stand-in media stands in for the other
-            // stages that do not exist as products yet.
-            return Promise.resolve({ patch: {}, candidates: {} });
+            return this.runners.frames({ plan: draft, workDir: this.workDir });
           case "compose":
             return this.runners.compose({ plan: draft, workDir: this.workDir });
         }
