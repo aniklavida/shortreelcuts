@@ -18,7 +18,7 @@
  * word-timing row are real plan fields with nothing to override yet (see
  * the reasons attached to each).
  */
-import { ownerOf, type FootageClip, type Plan, type Stage } from "@shortreelcuts/plan";
+import { aspectRatioOf, FORMAT_PRESETS, ownerOf, type FootageClip, type Plan, type Stage } from "@shortreelcuts/plan";
 import { STUB_VOICES, type DecisionCandidate } from "@shortreelcuts/stages";
 
 /**
@@ -307,19 +307,25 @@ function musicGroup(plan: Plan): DecisionGroup {
 }
 
 function formatGroup(plan: Plan): DecisionGroup {
+  const ratio = aspectRatioOf(plan.format);
+  const ratioLabel = ratio ?? "custom";
+  const supported = Object.entries(FORMAT_PRESETS)
+    .map(([name, dims]) => `${name} (${dims.width}×${dims.height})`)
+    .join(", ");
   return {
     id: "format",
     title: "Format",
-    summary: `${plan.format.width}×${plan.format.height} · ${plan.format.fps}fps · ${plan.format.container.toUpperCase()}`,
+    summary: `${ratioLabel} · ${plan.format.width}×${plan.format.height} · ${plan.format.fps}fps · ${plan.format.container.toUpperCase()}`,
     rows: [
       {
         id: "format",
         planPaths: ["format.width", "format.height", "format.fps", "format.container"],
         ownerStage: ownerOf("format.width"),
         label: "Output shape",
-        chosen: `${plan.format.width} × ${plan.format.height}, ${plan.format.fps}fps, ${plan.format.container.toUpperCase()}`,
-        reason: "every short-form platform accepts this shape with one encode — other aspect ratios are a planned override, not a v1 promise",
-        // No control at v1 — the schema fixes this shape (see @shortreelcuts/plan's FormatSchema).
+        chosen: `${ratioLabel} — ${plan.format.width} × ${plan.format.height}, ${plan.format.fps}fps, ${plan.format.container.toUpperCase()}`,
+        reason: `the render encodes exactly the dimensions in the plan; supported aspect ratios are ${supported}`,
+        // No control yet — the schema accepts the supported shapes, but nothing in the UI switches
+        // between them until a ratio control that edits width and height together exists.
       },
     ],
   };

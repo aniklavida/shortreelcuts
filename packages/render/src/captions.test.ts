@@ -1,4 +1,4 @@
-import type { CaptionsPlan, FormatPlan } from "@shortreelcuts/plan";
+import { FORMAT_PRESETS, type CaptionsPlan, type FormatPlan } from "@shortreelcuts/plan";
 import { describe, expect, it } from "vitest";
 import { formatAssTimestamp, formatSrtTimestamp, renderAss, renderSrt } from "./captions.js";
 import type { Cue } from "./timeline.js";
@@ -71,5 +71,15 @@ describe("renderAss", () => {
     const cues: Cue[] = [{ startSeconds: 0, endSeconds: 1, text: "cost is {free}" }];
     const ass = renderAss(cues, CAPTIONS, FORMAT);
     expect(ass).toContain("cost is \\{free\\}");
+  });
+
+  it("sizes the script to the plan's landscape (16:9) shape, not a fixed vertical one", () => {
+    const cues: Cue[] = [{ startSeconds: 0, endSeconds: 1, text: "hello" }];
+    const ass = renderAss(cues, CAPTIONS, { ...FORMAT_PRESETS["16:9"], fps: 30, container: "mp4" });
+    expect(ass).toContain("PlayResX: 1920");
+    expect(ass).toContain("PlayResY: 1080");
+    // Font size and margins are derived from the format's own height/width.
+    expect(ass).toMatch(/Style: bold-white-outline,Arial,49,/);
+    expect(ass).toMatch(/,115,115,86,1$/m);
   });
 });

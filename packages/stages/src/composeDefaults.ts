@@ -5,7 +5,7 @@
  * half without pulling `@shortreelcuts/render` and `execa` into a
  * browser bundle that will never actually run them.
  */
-import type { CaptionsPlan, FormatPlan, MusicPlan, Plan } from "@shortreelcuts/plan";
+import { DEFAULT_ASPECT_RATIO, FORMAT_PRESETS, type CaptionsPlan, type FormatPlan, type MusicPlan, type Plan } from "@shortreelcuts/plan";
 
 const DEFAULT_CAPTIONS: CaptionsPlan = {
   style: "bold-white-outline",
@@ -20,7 +20,10 @@ const DEFAULT_MUSIC: MusicPlan = {
   reason: "no bed selected — nothing in the brief asked for one, and the voice can carry the video alone",
 };
 
-const DEFAULT_FORMAT: FormatPlan = { width: 1080, height: 1920, fps: 30, container: "mp4" };
+// Dimensions come from the schema's preset registry so there is one source of
+// truth for the default 9:16 shape — the value is unchanged for a plan that
+// specifies no format.
+const DEFAULT_FORMAT: FormatPlan = { ...FORMAT_PRESETS[DEFAULT_ASPECT_RATIO], fps: 30, container: "mp4" };
 
 /** Fills in compose-owned fields with their v1 defaults, only where a plan doesn't already have them decided. */
 export function withComposeDefaults(plan: Plan): Plan {

@@ -253,15 +253,66 @@ export const MusicSchema = z
 
 export type MusicPlan = z.infer<typeof MusicSchema>;
 
-/** v1 ships exactly this output shape. See SPEC.md §15. */
+/**
+ * The output shapes a plan may choose from, keyed by aspect ratio.
+ *
+ * v1 shipped exactly one — 9:16 vertical, `docs/SPEC.md` §15. 16:9 and 1:1
+ * were added as selectable ratios later; the dimensions below are the
+ * canonical, even-pixel ones this project renders to, and the schema only
+ * accepts these exact pairs so the same ratio always means the same file
+ * shape.
+ *
+ * The plan stores concrete `width`/`height`, not the ratio token, because
+ * the renderer is a pure function of the plan and `ffmpeg` consumes pixels:
+ * an override changes the pixels it will actually encode, and the ratio is
+ * derived from them (`aspectRatioOf`) for display and for choosing between
+ * presets.
+ */
+export const FORMAT_PRESETS = {
+  "9:16": { width: 1080, height: 1920 },
+  "16:9": { width: 1920, height: 1080 },
+  "1:1": { width: 1080, height: 1080 },
+} as const satisfies Record<string, { width: number; height: number }>;
+
+export type AspectRatio = keyof typeof FORMAT_PRESETS;
+
+/** The ratio v1 shipped, and what a plan that specifies no format keeps getting. */
+export const DEFAULT_ASPECT_RATIO: AspectRatio = "9:16";
+
+const ASPECT_RATIO_BY_SHAPE = new Map<string, AspectRatio>(
+  Object.entries(FORMAT_PRESETS).map(([ratio, dims]) => [`${dims.width}x${dims.height}`, ratio as AspectRatio]),
+);
+
+/** The supported aspect ratio a format's dimensions correspond to, or `undefined` for a shape this project does not render. */
+export function aspectRatioOf(format: Pick<FormatPlan, "width" | "height">): AspectRatio | undefined {
+  return ASPECT_RATIO_BY_SHAPE.get(`${format.width}x${format.height}`);
+}
+
+/**
+ * `format` describes the pixels `compose` should emit. `width`/`height` are
+ * validated against `FORMAT_PRESETS` rather than fixed, so a plan can choose
+ * the shape but never an arbitrary one the rest of the pipeline has not been
+ * given crop logic for.
+ */
 export const FormatSchema = z
   .object({
-    width: z.literal(1080),
-    height: z.literal(1920),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
     fps: z.literal(30),
     container: z.literal("mp4"),
   })
-  .strict();
+  .strict()
+  .superRefine((format, ctx) => {
+    if (aspectRatioOf(format) !== undefined) return;
+    const supported = Object.entries(FORMAT_PRESETS)
+      .map(([ratio, dims]) => `${dims.width}x${dims.height} (${ratio})`)
+      .join(", ");
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `unsupported output shape ${format.width}x${format.height}; supported shapes are ${supported}`,
+      path: ["width"],
+    });
+  });
 
 export type FormatPlan = z.infer<typeof FormatSchema>;
 
