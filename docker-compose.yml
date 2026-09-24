@@ -1,0 +1,47 @@
+# `docker compose up` brings up the whole system: Postgres, the worker, and the
+# web app. The queue runs on the same Postgres (pg-boss), so there is no fourth
+# service. The defaults work with no editing; copy `.env.example` to `.env` only
+# to override credentials or point at a different database.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shortreelcuts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortreelcuts}
+      POSTGRES_DB: ${POSTGRES_DB:-shortreelcuts}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shortreelcuts} -d ${POSTGRES_DB:-shortreelcuts}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SHORTREELCUTS_DATABASE_URL: postgres://${POSTGRES_USER:-shortreelcuts}:${POSTGRES_PASSWORD:-shortreelcuts}@postgres:5432/${POSTGRES_DB:-shortreelcuts}
+      SHORTREELCUTS_WORKER_WORKDIR: /data/work
+    volumes:
+      - work-data:/data/work
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SHORTREELCUTS_DATABASE_URL: postgres://${POSTGRES_USER:-shortreelcuts}:${POSTGRES_PASSWORD:-shortreelcuts}@postgres:5432/${POSTGRES_DB:-shortreelcuts}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+  work-data:

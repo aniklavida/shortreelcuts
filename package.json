@@ -13,13 +13,15 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "test:e2e": "SHORTREELCUTS_RENDER_E2E=1 vitest run packages/render/src/testing/render.e2e.test.ts packages/sheet/src/session.e2e.test.ts",
-    "test:worker": "SHORTREELCUTS_WORKER_E2E=1 vitest run packages/db/src/jobs.e2e.test.ts apps/worker/src/run.e2e.test.ts apps/worker/src/resume.e2e.test.ts"
+    "test:worker": "SHORTREELCUTS_WORKER_E2E=1 vitest run packages/db/src/jobs.e2e.test.ts apps/worker/src/run.e2e.test.ts apps/worker/src/resume.e2e.test.ts",
+    "worker": "tsx apps/worker/src/start.ts"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"
   }
