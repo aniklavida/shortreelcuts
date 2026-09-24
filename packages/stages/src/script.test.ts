@@ -24,6 +24,12 @@ describe("runScript (stub)", () => {
     expect(result.patch.script.reason.length).toBeGreaterThan(0);
   });
 
+  it("marks its output as a deterministic stub, never a model generation", async () => {
+    const result = await runScript({ brief, seed: 1 });
+    expect(result.patch.script.reason.toLowerCase()).toContain("stub");
+    expect(result.patch.script.reason).toContain("no model was called");
+  });
+
   it("scales beat count with the target duration, within the readable 2-5 bound", async () => {
     const short = await runScript({ brief: { ...brief, targetSeconds: 15 }, seed: 1 });
     const long = await runScript({ brief: { ...brief, targetSeconds: 60 }, seed: 1 });

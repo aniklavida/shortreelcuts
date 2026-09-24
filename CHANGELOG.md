@@ -20,8 +20,18 @@ All notable changes to ShortReelCuts are documented here, following [Keep a Chan
   ducked background bed, and encodes 1080×1920 H.264/AAC MP4 by spawning a
   system `ffmpeg` as a binary — never linked. Proved against a
   hand-written plan fixture with no AI in the loop.
+- Script generation wired into the worker. The `ScriptProvider` in
+  `packages/providers` — one OpenAI-chat-completions client serving both a
+  hosted bring-your-own-key provider and a local runtime — now runs the
+  worker's script stage, resolved from the environment once at boot. When
+  no connection is configured the deterministic stub runs instead, and its
+  recorded reason says plainly that no model was called. A model response
+  that cannot be parsed fails the stage loudly rather than falling back.
+  The connection never reaches the plan, the database or a log line.
+  OAuth-reached subscriptions and a `VoiceProvider` are explicitly not
+  part of this change.
 
-No script, voice, footage-sourcing or alignment stage, and no provider,
-worker or web app, is implemented. This adds a renderer that can turn an
-already-complete plan into a video; nothing here can turn a prompt into a
-plan yet, and no release exists.
+Voice, footage-sourcing and alignment stages remain unimplemented, as do
+OAuth-reached model connections and a `VoiceProvider`. Script generation now
+exists, but nothing yet turns a prompt into a complete plan on its own, and
+no release exists.
