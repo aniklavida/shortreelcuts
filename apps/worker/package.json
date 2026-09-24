@@ -15,6 +15,7 @@
   "dependencies": {
     "@shortreelcuts/db": "^0.1.0",
     "@shortreelcuts/plan": "^0.1.0",
+    "@shortreelcuts/providers": "^0.1.0",
     "@shortreelcuts/stages": "^0.1.0",
     "pg-boss": "^12.31.1"
   }

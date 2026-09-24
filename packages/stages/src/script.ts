@@ -1,21 +1,34 @@
 /**
- * The script stage — stubbed.
+ * The script stage.
  *
- * No language model is wired in yet. `docs/SPEC.md` §11 settles which one
- * will be: whichever the user connects — a hosted API with their own key,
- * an agent subscription of theirs, or a model on their own hardware — all
- * first-class and reached through one neutral interface, not a provider
- * this project picks. This stub exists only so the decision sheet has a
- * script decision to render and invalidate — a real `ScriptProvider`
- * (`docs/SPEC.md` §7) drops in later behind the same `StageRunners.script`
- * signature.
+ * Two runners live here, and `apps/worker`'s default runners pick between
+ * them once, at boot (`runners.ts`), from the environment alone:
  *
- * It still follows the one rule that matters for the sheet: it proposes
- * more than one hook, picks one, and records why — never a silent choice.
+ * - `createScriptRunner(provider)` drives a real `ScriptProvider` — the
+ *   provider-neutral seam `docs/SPEC.md` §7 describes, so a hosted
+ *   bring-your-own-key model and a model running on the self-hoster's own
+ *   hardware are the same call. The provider returns the script the
+ *   connected model wrote; the runner records which connection produced
+ *   it in the plan reason. The `ScriptProvider` contract returns one
+ *   script, not a set of candidate hooks, so there are no rejected
+ *   alternatives for the stage to weigh — the reason says so rather than
+ *   inventing candidates nobody considered.
+ * - `runScript` is the deterministic stub, and the explicit fallback when
+ *   no model connection is configured. It proposes more than one hook,
+ *   picks one and records why, and its plan reason plainly says it is a
+ *   stub — never a silent downgrade that could be mistaken for a real
+ *   generation.
+ *
+ * A `ScriptProviderParseError` from the real provider is re-thrown as a
+ * `ScriptGenerationError`: a stage that cannot get a real script fails
+ * loudly instead of quietly falling back to the stub (`docs/SPEC.md` §7
+ * rule 1 — a plan field either came from a real decision or the stage
+ * fails, never a third option).
  */
 import type { Beat, Plan, ScriptPlan } from "@shortreelcuts/plan";
+import { ScriptProviderParseError, type ScriptProvider } from "@shortreelcuts/providers";
 import { makeRng, pick } from "./rng.js";
-import type { DecisionCandidate, ScriptRunInput, StageResult } from "./types.js";
+import type { DecisionCandidate, ScriptRunInput, StageResult, StageRunners } from "./types.js";
 
 const HOOK_TEMPLATES: ReadonlyArray<(topic: string) => string> = [
   (topic) => `Ever wondered why ${topic}?`,
@@ -50,6 +63,11 @@ function beatFor(index: number, topic: string): Beat {
   };
 }
 
+/**
+ * The deterministic stub. Its reason always names itself as a stub, so a
+ * plan produced without a model connection cannot be read as one that had
+ * one — the honesty requirement is in the plan, not only in a comment.
+ */
 export async function runScript(input: ScriptRunInput): Promise<StageResult<Pick<Plan, "script">>> {
   const rng = makeRng(input.seed);
   const topic = topicFrom(input.brief.prompt);
@@ -72,11 +90,56 @@ export async function runScript(input: ScriptRunInput): Promise<StageResult<Pick
   const script: ScriptPlan = {
     hook: chosenHook.label,
     beats,
-    reason: `${count} beats fit a ${Math.round(input.brief.targetSeconds)}s ${input.brief.tone} video, and this hook leads with the question the prompt itself raises`,
+    reason: `Deterministic script stub — no model was called. ${count} beats fit a ${Math.round(input.brief.targetSeconds)}s ${input.brief.tone} video, and this hook leads with the question the prompt itself raises`,
   };
 
   return {
     patch: { script },
     candidates: { "script.hook": candidates },
+  };
+}
+
+/** Thrown when a real provider's output cannot become a plan — see the module header. Never swallowed into the stub. */
+export class ScriptGenerationError extends Error {
+  constructor(providerId: string, cause: unknown) {
+    super(
+      `the connected model (${providerId}) did not return a usable script; ` +
+        "the stage failed rather than falling back to the deterministic stub",
+    );
+    this.name = "ScriptGenerationError";
+    this.cause = cause;
+  }
+}
+
+/**
+ * The real-provider runner. The provider's returned `ScriptPlan` is the
+ * decision; the only thing this stage adds is provenance in the reason,
+ * so the sheet can distinguish a model generation from the stub, and a
+ * single candidate for `script.hook` recording what the model chose.
+ *
+ * The candidate's `id` is the hook text itself (not a slug) on purpose:
+ * the sheet's candidate strip writes the candidate `id` back to
+ * `script.hook`, and the hook *is* the value at that plan path.
+ */
+export function createScriptRunner(provider: ScriptProvider): StageRunners["script"] {
+  return async (input) => {
+    let script: ScriptPlan;
+    try {
+      script = await provider.generate(input.brief, input.seed);
+    } catch (err) {
+      if (err instanceof ScriptProviderParseError) {
+        throw new ScriptGenerationError(provider.id, err);
+      }
+      throw err;
+    }
+
+    const reason = `${script.reason} — generated by the connected model (${provider.id}); it returns one script, so there are no rejected hook alternatives to weigh here.`;
+
+    return {
+      patch: { script: { ...script, reason } },
+      candidates: {
+        "script.hook": [{ id: script.hook, label: script.hook, chosen: true }],
+      },
+    };
   };
 }

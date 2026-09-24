@@ -27,6 +27,10 @@ services:
     environment:
       SHORTREELCUTS_DATABASE_URL: postgres://${POSTGRES_USER:-shortreelcuts}:${POSTGRES_PASSWORD:-shortreelcuts}@postgres:5432/${POSTGRES_DB:-shortreelcuts}
       SHORTREELCUTS_WORKER_WORKDIR: /data/work
+      # Script model connection — see `.env.example`. Empty means no connection, and the worker uses the script stub.
+      SHORTREELCUTS_MODEL_BASE_URL: ${SHORTREELCUTS_MODEL_BASE_URL:-}
+      SHORTREELCUTS_MODEL_NAME: ${SHORTREELCUTS_MODEL_NAME:-}
+      SHORTREELCUTS_MODEL_API_KEY: ${SHORTREELCUTS_MODEL_API_KEY:-}
     volumes:
       - work-data:/data/work
 
