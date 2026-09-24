@@ -1,0 +1,20 @@
+# The Next.js app. Build it with webpack because the workspace packages are
+# NodeNext TypeScript whose internal imports carry a `.js` extension that points
+# at a `.ts` file; the webpack extension-alias rules in `next.config.mjs` handle
+# that, and the build needs devDependencies (typescript) present.
+FROM node:22-bookworm-slim
+
+WORKDIR /app
+
+# Next.js ships CLI telemetry on by default. This product promises none at all,
+# so disable it for the build and for the running server (ENV persists to both).
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY . .
+RUN npm ci \
+    && npm run build --workspace @shortreelcuts/web
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["npm", "run", "start", "--workspace", "@shortreelcuts/web"]

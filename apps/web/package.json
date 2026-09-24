@@ -1,0 +1,27 @@
+{
+  "name": "@shortreelcuts/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The user-facing web app for ShortReelCuts.",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shortreelcuts/db": "^0.1.0",
+    "@shortreelcuts/plan": "^0.1.0",
+    "@shortreelcuts/sheet": "^0.1.0",
+    "@shortreelcuts/worker": "^0.1.0",
+    "next": "^16.3.6",
+    "pg-boss": "^12.31.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  }
+}
