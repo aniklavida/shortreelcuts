@@ -155,6 +155,15 @@ describe("createOpenAiCompatibleVoiceProvider", () => {
     ]);
   });
 
+  it("falls back to standard OpenAI voices when no voice ids are configured", async () => {
+    const { sink } = makeSink();
+    const conn: VoiceConnection = { kind: "local", baseURL, model: "tts-test", voiceIds: [] };
+    const provider = createOpenAiCompatibleVoiceProvider(conn, sink);
+
+    const declared = await provider.voices();
+    expect(declared.map((v) => v.id)).toEqual(["alloy", "echo", "fable", "onyx", "nova", "shimmer"]);
+  });
+
   it("throws VoiceProviderRequestError on a non-2xx response, with no credential in the message", async () => {
     respondWith = () => ({ status: 401, body: JSON.stringify({ error: "unauthorized" }), contentType: "application/json" });
     const { sink } = makeSink();

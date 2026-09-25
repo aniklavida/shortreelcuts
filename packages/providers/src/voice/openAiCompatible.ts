@@ -91,11 +91,23 @@ function responseExcerpt(bytes: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, 512));
 }
 
+export const DEFAULT_OPENAI_VOICES: readonly VoiceDescriptor[] = [
+  { id: "alloy", label: "alloy" },
+  { id: "echo", label: "echo" },
+  { id: "fable", label: "fable" },
+  { id: "onyx", label: "onyx" },
+  { id: "nova", label: "nova" },
+  { id: "shimmer", label: "shimmer" },
+];
+
 export function createOpenAiCompatibleVoiceProvider(connection: VoiceConnection, media: MediaSink): VoiceProvider {
   return {
     id: `openai-compatible:${connection.kind}`,
     async voices(): Promise<VoiceDescriptor[]> {
-      return connection.voiceIds.map((id) => ({ id, label: id }));
+      if (connection.voiceIds.length > 0) {
+        return connection.voiceIds.map((id) => ({ id, label: id }));
+      }
+      return [...DEFAULT_OPENAI_VOICES];
     },
     async speak(lines: readonly NarrationLine[], choice: VoiceChoice): Promise<AudioTrack[]> {
       const tracks: AudioTrack[] = [];

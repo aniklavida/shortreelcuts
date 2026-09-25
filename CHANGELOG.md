@@ -30,8 +30,20 @@ All notable changes to ShortReelCuts are documented here, following [Keep a Chan
   The connection never reaches the plan, the database or a log line.
   OAuth-reached subscriptions and a `VoiceProvider` are explicitly not
   part of this change.
+- Voice stage and provider wired into the worker. The `VoiceProvider` in
+  `packages/providers` — an OpenAI-audio-speech client serving both a
+  hosted bring-your-own-key provider and a local runtime — now runs the
+  worker's voice stage via `createVoiceRunner`, resolved from the
+  environment once at boot. When no connection is configured the
+  deterministic stub runs instead, and its recorded reason says plainly
+  that no speech engine was called. Declared voices are exposed as
+  candidates on the decision sheet, with the stage selecting a voice and
+  recording provenance. A provider failure fails the stage loudly rather
+  than silently falling back. The connection key never reaches the plan,
+  the database or a log line. OAuth-reached subscriptions remain out of
+  scope.
 
-Voice, footage-sourcing and alignment stages remain unimplemented, as do
-OAuth-reached model connections and a `VoiceProvider`. Script generation now
-exists, but nothing yet turns a prompt into a complete plan on its own, and
+Footage-sourcing and alignment stages remain unimplemented, as do
+OAuth-reached model connections. Script and voice generation now
+exist, but nothing yet turns a prompt into a complete plan on its own, and
 no release exists.
