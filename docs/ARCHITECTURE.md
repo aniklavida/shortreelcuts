@@ -65,10 +65,10 @@ This is the mechanism the whole product rests on. A bug here either re-runs too 
 
 Each stage's external dependency sits behind an interface: script, voice, footage, alignment, rendering, and a media store. The interfaces exist from the first commit, because retrofitting a seam after five stages are written is the expensive version of the same decision.
 
-Implemented for the script slot today; planned for the rest:
+Implemented for the script and voice slots today; planned for the rest:
 
 - **Script uses whichever model the user connects** — a hosted API with their own key or a model on their own hardware, both first-class and reached through one provider-neutral interface, so the pipeline cannot tell which. The provider is implemented and wired into the worker's script stage, and falls back to an explicitly marked deterministic stub when no connection is configured. An agent subscription connected by signing in is planned. A local model runs as a separate process.
-- **Voice uses whichever model the user connects** — planned. The same provider-neutral interface applies.
+- **Voice uses whichever model the user connects** — a hosted speech API with their own key or a local server on their own hardware, reached through the same provider-neutral interface. The provider is implemented and wired into the worker's voice stage, and falls back to an explicitly marked deterministic stub when no connection is configured. An agent subscription connected by signing in is planned.
 - **Footage is chosen per scene from three sources**: stock clips from a library the user has a key for, AI-generated video from a generation provider they connect, and motion graphics written as code by the connected model and rendered to video on the worker. A plan can mix all three.
 
 Three boundaries, enforced by tests:

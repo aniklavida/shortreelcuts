@@ -11,8 +11,8 @@
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Brief } from "@shortreelcuts/plan";
-import { ScriptGenerationError } from "@shortreelcuts/stages";
+import type { Brief, Plan } from "@shortreelcuts/plan";
+import { createVoiceRunner, ScriptGenerationError, VoiceGenerationError } from "@shortreelcuts/stages";
 import { defaultRunners } from "./runners.js";
 
 const BRIEF: Brief = { prompt: "why the ocean is salty", targetSeconds: 20, tone: "calm" };
@@ -131,6 +131,111 @@ describe("defaultRunners script wiring", () => {
         },
       });
       await runners.script({ brief: BRIEF, seed: 1 });
+      for (const spy of spies) {
+        for (const call of spy.mock.calls) {
+          expect(call.join(" ")).not.toContain(SECRET_KEY);
+        }
+      }
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+  });
+});
+
+function fixturePlan(): Plan {
+  return {
+    planVersion: 2,
+    seed: 41207,
+    brief: BRIEF,
+    script: {
+      hook: "Why is the ocean salty?",
+      beats: [
+        { id: "b1", narration: "Rain erodes rocks.", onScreen: "Rain", search: "rain rocks" },
+        { id: "b2", narration: "Minerals flow to sea.", onScreen: "Minerals", search: "river sea" },
+      ],
+      reason: "simple explainer",
+    },
+    voice: { provider: "stub", voiceId: "warm-female", rate: 1.0, reason: "stub voice" },
+    footage: {},
+    align: { provider: "stub", words: {}, reason: "stub align" },
+    captions: { style: "clean", position: "lower-third", wordsPerCue: 3, reason: "clean captions" },
+    music: { enabled: false, volume: 0, reason: "no music" },
+    format: { width: 1080, height: 1920, fps: 30, container: "mp4" },
+  };
+}
+
+describe("defaultRunners voice wiring", () => {
+  it("uses the real voice provider when a local connection is configured", async () => {
+    const runners = defaultRunners({
+      env: {
+        SHORTREELCUTS_VOICE_BASE_URL: "http://127.0.0.1:5002/v1",
+        SHORTREELCUTS_VOICE_NAME: "local-tts",
+        SHORTREELCUTS_VOICE_IDS: "voice-a,voice-b",
+      },
+    });
+
+    const result = await runners.voice({ plan: fixturePlan() });
+
+    expect(result.patch.voice.provider).toBe("openai-compatible:local");
+    expect(["voice-a", "voice-b"]).toContain(result.patch.voice.voiceId);
+    expect(result.patch.voice.reason).toContain("openai-compatible:local");
+    const candidates = result.candidates["voice.voiceId"];
+    expect(candidates).toHaveLength(2);
+    expect(candidates?.find((c) => c.chosen)?.id).toBe(result.patch.voice.voiceId);
+  });
+
+  it("uses the real voice provider with byok key and keeps it out of the plan and candidates", async () => {
+    const runners = defaultRunners({
+      env: {
+        SHORTREELCUTS_VOICE_BASE_URL: "https://api.example.com/v1",
+        SHORTREELCUTS_VOICE_NAME: "hosted-tts",
+        SHORTREELCUTS_VOICE_API_KEY: SECRET_KEY,
+        SHORTREELCUTS_VOICE_IDS: "alloy,nova",
+      },
+    });
+
+    const result = await runners.voice({ plan: fixturePlan() });
+
+    expect(result.patch.voice.provider).toBe("openai-compatible:byok");
+    expect(JSON.stringify(result.patch)).not.toContain(SECRET_KEY);
+    expect(JSON.stringify(result.candidates)).not.toContain(SECRET_KEY);
+  });
+
+  it("falls back to the marked stub when no voice connection is configured", async () => {
+    const runners = defaultRunners({ env: {} });
+
+    const result = await runners.voice({ plan: fixturePlan() });
+
+    expect(result.patch.voice.provider).toBe("stub");
+    expect(result.patch.voice.reason).toContain("stub");
+    expect(result.patch.voice.reason).toContain("no speech engine was called");
+  });
+
+  it("fails loudly instead of falling back to the stub when the voice provider declares no voices", async () => {
+    const mockProvider = {
+      id: "empty-provider",
+      voices: async () => [],
+      speak: async () => [],
+    };
+    const runner = createVoiceRunner(mockProvider);
+    await expect(runner({ plan: fixturePlan() })).rejects.toBeInstanceOf(VoiceGenerationError);
+  });
+
+  it("never writes the configured voice key to the console while generating", async () => {
+    const spies = (["log", "info", "warn", "error", "debug"] as const).map((method) =>
+      vi.spyOn(console, method).mockImplementation(() => undefined),
+    );
+
+    try {
+      const runners = defaultRunners({
+        env: {
+          SHORTREELCUTS_VOICE_BASE_URL: "https://api.example.com/v1",
+          SHORTREELCUTS_VOICE_NAME: "tts-1",
+          SHORTREELCUTS_VOICE_API_KEY: SECRET_KEY,
+          SHORTREELCUTS_VOICE_IDS: "alloy,nova",
+        },
+      });
+      await runners.voice({ plan: fixturePlan() });
       for (const spy of spies) {
         for (const call of spy.mock.calls) {
           expect(call.join(" ")).not.toContain(SECRET_KEY);

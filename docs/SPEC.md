@@ -266,12 +266,12 @@ A render is resumable from its last completed stage. Closing the browser does no
 
 ## 11 · Models and footage sources
 
-Five slots. **Most of this is planned for v1.0.** The script slot's model connection is implemented today: a `ScriptProvider` against any OpenAI-chat-completions endpoint — a hosted bring-your-own-key provider or a local runtime — wired into the worker's script stage, with the deterministic stub as an explicit, recorded fallback when nothing is configured. Voice, footage, alignment and the rest remain planned.
+Five slots. **Most of this is planned for v1.0.** The script and voice slots' model connections are implemented today: a `ScriptProvider` and `VoiceProvider` against any OpenAI-compatible completions / speech endpoints — hosted bring-your-own-key providers or local runtimes — wired into the worker's stage runners, with deterministic stubs as explicit, recorded fallbacks when nothing is configured. Footage, alignment and the rest remain planned.
 
 | Slot | Planned for v1.0 |
 |---|---|
 | Script | **Any language model you choose.** A hosted model with your own API key, an agent subscription you already pay for connected by signing in, or a model running on your own hardware. All three are first-class at v1. The hosted-key and local-runtime halves are implemented and tested; the agent-subscription sign-in is planned |
-| Voice | **A speech model you choose**, hosted with your own key or running on your own hardware |
+| Voice | **A speech model you choose**, hosted with your own key or running on your own hardware. The hosted-key and local-runtime halves are implemented and tested; the agent-subscription sign-in is planned |
 | Footage | **Chosen per scene, from three sources**, which can be mixed in one video: stock clips from Pexels or Pixabay with your own API key · AI-generated video from a generation model you connect · **motion graphics written as code** by the model you connected, rendered to video |
 | Align | a Whisper-family runtime, run as a separate process |
 | Render | `ffmpeg` |

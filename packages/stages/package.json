@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "The stage runners: deterministic stubs for voice, footage, align and frames, the real compose (via @shortreelcuts/render), and the script stage's provider-backed runner with the stub as its fallback. Framework-free on purpose — both the browser decision-sheet package and the worker process import the same runners from here.",
+  "description": "The stage runners: deterministic stubs for footage, align and frames, the real compose (via @shortreelcuts/render), and the script and voice stages' provider-backed runners with stubs as their fallbacks. Framework-free on purpose — both the browser decision-sheet package and the worker process import the same runners from here.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
