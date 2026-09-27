@@ -66,7 +66,9 @@ function makeFallbackMediaSink(): MediaSink {
   const store = new Map<string, Uint8Array>();
   return {
     async put(bytes: Uint8Array): Promise<string> {
-      return `mem:${store.size}`;
+      const key = `mem:${store.size}`;
+      store.set(key, bytes);
+      return key;
     },
   };
 }
