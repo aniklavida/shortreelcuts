@@ -65,17 +65,25 @@ This is the mechanism the whole product rests on. A bug here either re-runs too 
 
 Each stage's external dependency sits behind an interface: script, voice, footage, alignment, rendering, and a media store. The interfaces exist from the first commit, because retrofitting a seam after five stages are written is the expensive version of the same decision.
 
-Implemented for the script and voice slots today; planned for the rest:
+Implemented for the script, voice and stock-footage slots today; planned for the rest:
 
 - **Script uses whichever model the user connects** — a hosted API with their own key or a model on their own hardware, both first-class and reached through one provider-neutral interface, so the pipeline cannot tell which. The provider is implemented and wired into the worker's script stage, and falls back to an explicitly marked deterministic stub when no connection is configured. An agent subscription connected by signing in is planned. A local model runs as a separate process.
 - **Voice uses whichever model the user connects** — a hosted speech API with their own key or a local server on their own hardware, reached through the same provider-neutral interface. The provider is implemented and wired into the worker's voice stage, and falls back to an explicitly marked deterministic stub when no connection is configured. An agent subscription connected by signing in is planned.
-- **Footage is chosen per scene from three sources**: stock clips from a library the user has a key for, AI-generated video from a generation provider they connect, and motion graphics written as code by the connected model and rendered to video on the worker. A plan can mix all three.
+- **Footage is chosen per scene from three sources**: stock clips from a library the user has a key for, AI-generated video from a generation provider they connect, and motion graphics written as code by the connected model and rendered to video on the worker. A plan can mix all three. The stock half is implemented and tested — one `FootageProvider` interface with a real adapter per cleared library (Pexels, Pixabay), both bring-your-own-key, both chosen by the self-hoster with no default, falling back to an explicitly marked deterministic stub. Downloading the selected clip into an intermediate file is planned, not implemented: the adapters re-resolve the stored asset id to a media URL and the frames stage does not call that yet.
 
 Three boundaries, enforced by tests:
 
 - **A provider returns candidates, never a final choice.** Choosing belongs to the stage, because the stage is what records the reason.
 - **A provider declares its capabilities** — voices, aspect ratios, whether it honours a requested duration. The override control is generated from that declaration, so adding a provider never means editing the interface. The moment it does, the adapter boundary has leaked into the UI.
 - **A provider never touches the database, the queue or the filesystem.** In, out, and a media handle if it needs bytes.
+
+### A plan holds an id, not a URL
+
+A stock-footage provider returns the library's asset id and a human-facing asset page. The plan records the id; the provider re-resolves the media URL from it at render time. Nothing that re-points at a library's video file is ever written into a plan, and a provider that returns one in any field is rejected by an assertion the stage runs before it returns — a plan is exportable and shareable, so a baked-in download link is a licence-redistribution leak, and an expiring one on top.
+
+This is the same rule as "no credential in a plan", arrived at from the other direction, and it is tested the same way: by breaking it on purpose and asserting the stage refuses.
+
+The assertion runs over **every candidate the library returned, not only the chosen one** — candidates are stored next to the plan and shown on the decision sheet, so a leak in the clip the seed did not pick is just as much a leak. It also matches a URL *anywhere* in a string rather than only at its start, because a download link smuggled into a free-text `label` is the same leak wearing a citation.
 
 ## Rendering
 

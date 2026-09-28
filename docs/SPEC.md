@@ -266,15 +266,38 @@ A render is resumable from its last completed stage. Closing the browser does no
 
 ## 11 · Models and footage sources
 
-Five slots. **Most of this is planned for v1.0.** The script and voice slots' model connections are implemented today: a `ScriptProvider` and `VoiceProvider` against any OpenAI-compatible completions / speech endpoints — hosted bring-your-own-key providers or local runtimes — wired into the worker's stage runners, with deterministic stubs as explicit, recorded fallbacks when nothing is configured. Footage, alignment and the rest remain planned.
+Five slots. **Most of this is planned for v1.0.** The script, voice and stock-footage slots are implemented today: a `ScriptProvider`, a `VoiceProvider` and a `FootageProvider` — the last against Pexels or Pixabay with the self-hoster's own key — wired into the worker's stage runners, with deterministic stubs as explicit, recorded fallbacks when nothing is configured. Alignment and the rest remain planned.
 
 | Slot | Planned for v1.0 |
 |---|---|
 | Script | **Any language model you choose.** A hosted model with your own API key, an agent subscription you already pay for connected by signing in, or a model running on your own hardware. All three are first-class at v1. The hosted-key and local-runtime halves are implemented and tested; the agent-subscription sign-in is planned |
 | Voice | **A speech model you choose**, hosted with your own key or running on your own hardware. The hosted-key and local-runtime halves are implemented and tested; the agent-subscription sign-in is planned |
-| Footage | **Chosen per scene, from three sources**, which can be mixed in one video: stock clips from Pexels or Pixabay with your own API key · AI-generated video from a generation model you connect · **motion graphics written as code** by the model you connected, rendered to video |
+| Footage | **Chosen per scene, from three sources**, which can be mixed in one video: stock clips from Pexels or Pixabay with your own API key · AI-generated video from a generation model you connect · **motion graphics written as code** by the model you connected, rendered to video. **The stock half is implemented and tested against mock HTTP servers for both libraries; the generated-video and motion-graphics halves are planned** |
 | Align | a Whisper-family runtime, run as a separate process |
 | Render | `ffmpeg` |
+
+**Stock footage, specifically.** Implemented and tested: one
+provider-neutral `FootageProvider` interface, a real adapter per cleared
+library, both bring-your-own-key and both chosen by the self-hoster in
+their `.env` — **there is no default provider**, and with nothing
+configured the footage stage runs its deterministic stub, whose recorded
+reason says plainly that no library was searched. Downloading and
+normalising the chosen clip into an intermediate file is **not yet
+implemented**: the adapters re-resolve a stored asset id to a media URL
+(`resolveMediaUrl`, implemented and tested), but the frames stage does not
+call it yet, so an end-to-end video built from a stock clip is planned
+rather than working. Neither adapter has been run against a live library —
+every test uses a local mock HTTP server, so no claim is published about
+what a real response contains.
+
+**A plan records the library's asset id and nothing else that re-points at
+the media.** Candidates carry no download URL, the stage refuses any clip
+carrying one, and the media URL is re-resolved from the id at render time.
+The check covers every candidate the library returned, not only the one
+chosen, because the losers are stored and shown too. This is a
+licence-redistribution requirement rather than a style
+preference: a plan is exportable and shareable, so a baked-in download URL
+would leak the way a credential would, and it expires besides.
 
 **Motion graphics written as code are the lead footage source**, not an add-on: animated text, diagrams, charts and illustrations that the model writes as animation code and ShortReelCuts renders into frames, so a scene can show exactly what the narration says rather than the nearest stock clip.
 
@@ -316,7 +339,7 @@ Both questions that decide this bill are settled. **Planned for v1.0, not implem
 
 | Footage source | What leaves the machine | What it costs |
 |---|---|---|
-| Stock clips (Pexels, Pixabay) | The scene's search term, to that library | Free within the library's API limits. Its terms of use will be stated here before stock footage ships |
+| Stock clips (Pexels, Pixabay) | The scene's search term, to that library | Free within the library's API limits. Both libraries' terms are cleared (card 10): no attribution is required in the exported video, cropping and trimming are permitted, and commercial use including selling the result is allowed. Their rate limits sit far above one video's needs — **a target, not a measurement: no live request has been made by this repository** |
 | AI-generated video | The scene description, to the generation provider you connect | Billed per clip by that provider. **Shown before the scene renders** |
 | Motion graphics written as code | The request to the model you connected, as for the script | The model's tokens, plus render time on your machine |
 
@@ -382,6 +405,7 @@ Other aspect ratios are an override on the format group, not a v1 promise — ea
 - Nothing is sent anywhere except to the providers you connect. §13 lists which stages can leave the machine for each choice. With local script and voice models and motion-graphics footage, nothing is planned to leave it; a stock scene sends only its search term.
 - **No telemetry.** Not opt-out telemetry — none.
 - Secrets live in `.env` and never in the database, the plan document or a log line. A plan is exportable and shareable, so a key inside one would be a leak with legs.
+- **A plan holds no stock-footage download URL and no media file**, only the library's own asset id, which the provider re-resolves to a URL at render time. A shareable plan therefore cannot be used to re-host a library's video, and does not rot when the URL does. Enforced at runtime by `assertClipCarriesNoMediaUrl` and proved in tests by sabotaging the plan on purpose.
 
 ## 17 · v1 acceptance criteria
 

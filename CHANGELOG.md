@@ -42,8 +42,55 @@ All notable changes to ShortReelCuts are documented here, following [Keep a Chan
   than silently falling back. The connection key never reaches the plan,
   the database or a log line. OAuth-reached subscriptions remain out of
   scope.
+- Stock-footage provider wired into the worker. A provider-neutral
+  `FootageProvider` in `packages/providers` — one interface, one
+  candidate-clip shape — with a real adapter per cleared library: Pexels
+  and Pixabay, both bring-your-own-key, both resolved from the environment
+  once at boot via `SHORTREELCUTS_FOOTAGE_PROVIDER` and
+  `SHORTREELCUTS_FOOTAGE_API_KEY`. **No default provider is chosen for
+  you**: with neither variable set the worker's footage stage runs its
+  deterministic stub, whose recorded reason now says plainly that no
+  library was searched and that its asset ids are synthetic. Naming a
+  library without a key, or naming one this build has no adapter for, is
+  refused at boot rather than silently stubbed.
 
-Footage-sourcing and alignment stages remain unimplemented, as do
-OAuth-reached model connections. Script and voice generation now
-exist, but nothing yet turns a prompt into a complete plan on its own, and
-no release exists.
+  A library returns candidates and the stage picks one, records the
+  provider, the asset, the alternatives and the search term in the plan
+  reason, and exposes every returned clip as a candidate on the decision
+  sheet. A non-2xx, an unparseable 2xx or an empty result fails the stage
+  loudly instead of falling back to the stub.
+
+  **A plan records the library's own asset id and never a download URL or
+  a file.** Candidates carry no media link, `assertClipCarriesNoMediaUrl`
+  walks every string in the clip and rejects any URL other than the
+  library's allow-listed asset page, and a media URL is re-resolved from
+  the asset id only at render/download time by the provider's
+  `resolveMediaUrl`. The same assertion runs over **every candidate the
+  library returned**, not only the chosen clip: candidates are stored next
+  to the plan and shown on the decision sheet, so a leak in the clip the
+  seed did not pick is just as much a leak. The rule is proved by
+  sabotaging the plan on purpose —
+  a URL pasted into the asset id, a URL smuggled into another field, a
+  credit page on the library's media CDN, a download URL embedded in a
+  losing candidate's free-text label — and asserting the stage fails
+  in each case. The API key reaches neither the plan, the candidates, a
+  resolved URL, an error message nor a log line, and Pixabay's required
+  24-hour response cache is implemented with an injected clock and tested
+  at the boundary.
+
+  Both libraries' terms are cleared (card 10): no attribution is required
+  in the exported video, cropping and trimming are permitted, and
+  commercial use including selling the result is allowed. Rate limits sit
+  far above one video's needs. Not in this change: re-resolving and
+  downloading the media at render time is implemented and tested as a
+  provider method but the frames stage does not call it yet, and neither
+  adapter has been run against a live library — every test here uses a
+  local mock HTTP server, so no published claim is made about a real
+  response.
+
+Stock-footage sourcing is now implemented for two libraries, but the
+frames stage still does not download the clips it selects, and the
+alignment stage remains unimplemented, as do OAuth-reached model
+connections. Script, voice and footage now exist as provider-backed
+stages, but nothing yet turns a prompt into a complete plan on its own,
+and no release exists.

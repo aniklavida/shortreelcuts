@@ -94,6 +94,97 @@ export interface VoiceProvider {
 
 export type FootageSource = "stock" | "generated" | "motion";
 
+/**
+ * One clip a real stock library offered for a scene's search term. This is
+ * the whole vocabulary of a candidate: the library's own asset id, a label
+ * a human can read on the decision sheet, the clip's duration, and the two
+ * strings `StockFootageSchema`'s required `credit` field holds.
+ *
+ * **There is deliberately no media URL and no video bytes here.** Both are
+ * re-derived from `assetId` at render/download time by
+ * `FootageProvider.resolveMediaUrl`, because a plan is exportable and
+ * shareable (`AGENTS.md`, "Secrets"): a download URL baked into one is a
+ * licence-redistribution leak with legs, and it expires besides. The one
+ * URL a candidate may carry is `credit.pageUrl`, the library's human-facing
+ * asset page, which is checked against `FootageProvider.planUrlHosts`
+ * before it is allowed anywhere near a plan.
+ */
+export interface StockClipCandidate {
+  readonly assetId: string;
+  readonly label: string;
+  readonly durationSeconds: number;
+  readonly credit: {
+    readonly creator: string;
+    readonly pageUrl: string;
+  };
+}
+
+export interface StockSearchRequest {
+  /** Which scene is asking. Used for diagnostics and cache keys, never sent to the library. */
+  readonly beatId: string;
+  readonly search: string;
+  /** How many candidates the stage wants to weigh. */
+  readonly count: number;
+  /** The scene's length in seconds, so a provider can prefer a clip long enough to fill it. */
+  readonly targetSeconds: number;
+  /**
+   * The output shape, derived by the stage from the plan's `format`. A
+   * library that can filter by orientation is told the truth rather than
+   * left to return landscape clips for a vertical video; a library with no
+   * such filter ignores it and the renderer crops.
+   */
+  readonly orientation: "portrait" | "landscape" | "square";
+}
+
+/**
+ * A `FootageConnection` is resolved from the environment only, the same
+ * rule the model and voice connections follow. It is separate from
+ * `ModelConnection` for the same reason: script, voice and footage are
+ * three different slots a self-hoster may point at three different
+ * places, so they get three sets of variables rather than sharing one.
+ *
+ * Always `kind: "byok"`. A stock library has no local, credential-free
+ * half — it is either a key or it is nothing — so there is no second kind
+ * to represent, and the footage stage falls back to its stub when no
+ * connection resolves at all.
+ */
+export interface FootageConnection {
+  readonly kind: "byok";
+  /** Which library, as an id. Never defaulted: the self-hoster chooses. */
+  readonly provider: "pexels" | "pixabay";
+  /** Never logged and never written into a `Plan` — see `connection.ts` and the adapter that consumes this. */
+  readonly apiKey: string;
+  /** Optional API-root override for a proxy or self-hosted mirror. Absent means the library's own public host. */
+  readonly baseURL?: string;
+}
+
+/**
+ * The footage slot's real-provider interface — the same shape as
+ * `ScriptProvider` and `VoiceProvider` (`docs/SPEC.md` §5.1): in, out, and
+ * a media handle, with a choice never made here. `search` returns
+ * candidates; the stage picks one and records why, which is the one rule
+ * that makes the decision sheet possible at all.
+ *
+ * `resolveMediaUrl` is the counterpart of the id-only storage rule. It is
+ * called by whatever fetches the bytes — never by a stage that is writing
+ * a plan, and its return value must never be recorded in one.
+ */
+export interface FootageProvider {
+  /** Which library this is, as an id — never a display name. */
+  readonly id: string;
+  /**
+   * The only hosts a URL belonging to this provider may appear on inside
+   * a plan. In practice the library's own public asset pages, never its
+   * media CDN. `assertClipCarriesNoMediaUrl` (`footage/remoteStock.ts`)
+   * enforces this, so a provider that returns a CDN link in an unexpected
+   * field fails the stage instead of shipping a re-hostable URL.
+   */
+  readonly planUrlHosts: readonly string[];
+  search(request: StockSearchRequest, signal?: AbortSignal): Promise<StockClipCandidate[]>;
+  /** Re-resolves a stored asset id to a media URL at render/download time. Never recorded in a plan. */
+  resolveMediaUrl(assetId: string, signal?: AbortSignal): Promise<string>;
+}
+
 export interface BeatContext {
   readonly beatId: string;
   readonly narration: string;

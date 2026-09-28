@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  MissingFootageApiKeyError,
+  NoFootageConnectionError,
   NoModelConnectionError,
   NoVoiceConnectionError,
+  UnknownFootageProviderError,
+  resolveFootageConnection,
   resolveModelConnection,
   resolveVoiceConnection,
 } from "./connection.js";
@@ -103,6 +107,81 @@ describe("resolveVoiceConnection", () => {
     } finally {
       if (original === undefined) delete process.env["SHORTREELCUTS_VOICE_BASE_URL"];
       else process.env["SHORTREELCUTS_VOICE_BASE_URL"] = original;
+    }
+  });
+});
+
+const FOOTAGE_KEY = "TEST-FAKE-CREDENTIAL-DO-NOT-LEAK-4f9c2";
+
+describe("resolveFootageConnection", () => {
+  it("resolves a byok connection for either library — the self-hoster chooses, nothing is defaulted", () => {
+    expect(resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels", SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY })).toEqual({
+      kind: "byok",
+      provider: "pexels",
+      apiKey: FOOTAGE_KEY,
+    });
+    expect(resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "pixabay", SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY })).toEqual({
+      kind: "byok",
+      provider: "pixabay",
+      apiKey: FOOTAGE_KEY,
+    });
+  });
+
+  it("carries an optional base URL for a proxy or self-hosted mirror, and omits it when unset", () => {
+    expect(
+      resolveFootageConnection({
+        SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels",
+        SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY,
+        SHORTREELCUTS_FOOTAGE_BASE_URL: "http://127.0.0.1:8080",
+      }).baseURL,
+    ).toBe("http://127.0.0.1:8080");
+    expect(
+      resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels", SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY }).baseURL,
+    ).toBeUndefined();
+  });
+
+  it("throws NoFootageConnectionError — the documented stub fallback — when no provider is chosen", () => {
+    expect(() => resolveFootageConnection({})).toThrow(NoFootageConnectionError);
+    // A key with no library named is not a configuration: which library it
+    // belongs to would be a guess, and nothing here guesses.
+    expect(() => resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY })).toThrow(NoFootageConnectionError);
+  });
+
+  it("throws MissingFootageApiKeyError, not the stub, when a library is named without a key", () => {
+    expect(() => resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels" })).toThrow(MissingFootageApiKeyError);
+    expect(() =>
+      resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "pixabay", SHORTREELCUTS_FOOTAGE_API_KEY: "  " }),
+    ).toThrow(MissingFootageApiKeyError);
+  });
+
+  it("throws UnknownFootageProviderError rather than guessing which library was meant", () => {
+    expect(() =>
+      resolveFootageConnection({ SHORTREELCUTS_FOOTAGE_PROVIDER: "coverr", SHORTREELCUTS_FOOTAGE_API_KEY: FOOTAGE_KEY }),
+    ).toThrow(UnknownFootageProviderError);
+  });
+
+  it("never puts the key in a thrown message", () => {
+    for (const env of [
+      { SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels" },
+      { SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels", SHORTREELCUTS_FOOTAGE_API_KEY: " " },
+    ]) {
+      try {
+        resolveFootageConnection(env);
+        throw new Error("expected a throw");
+      } catch (err) {
+        expect((err as Error).message).not.toContain(FOOTAGE_KEY);
+      }
+    }
+  });
+
+  it("never reads the process environment itself — only the object it's given", () => {
+    const original = process.env["SHORTREELCUTS_FOOTAGE_PROVIDER"];
+    process.env["SHORTREELCUTS_FOOTAGE_PROVIDER"] = "pexels";
+    try {
+      expect(() => resolveFootageConnection({})).toThrow(NoFootageConnectionError);
+    } finally {
+      if (original === undefined) delete process.env["SHORTREELCUTS_FOOTAGE_PROVIDER"];
+      else process.env["SHORTREELCUTS_FOOTAGE_PROVIDER"] = original;
     }
   });
 });

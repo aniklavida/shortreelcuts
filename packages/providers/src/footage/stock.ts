@@ -18,12 +18,22 @@ export interface StockCandidateData {
   };
 }
 
+/**
+ * The synthetic stock adapter, and the shape the two real libraries
+ * (`pexels.ts`, `pixabay.ts`) are held to.
+ *
+ * It searches nothing: its candidates are generated from the beat id, so
+ * its asset ids do not resolve at any library. That is why its default id
+ * is `stock-stub` and not the name of a real library, and why the clip it
+ * materialises says so in its reason. A plan must never be able to claim
+ * a clip came from Pexels when no Pexels request was ever made.
+ */
 export class StockFootageAdapter implements FootageAdapter<"stock", StockCandidateData, StockFootage> {
   readonly source = "stock" as const;
   readonly id: string;
 
   constructor(options?: { id?: string }) {
-    this.id = options?.id ?? "pexels";
+    this.id = options?.id ?? "stock-stub";
   }
 
   async capabilities(): Promise<FootageCapabilities> {
@@ -33,9 +43,12 @@ export class StockFootageAdapter implements FootageAdapter<"stock", StockCandida
       aspectRatios: ["9:16"],
       producesAudio: false,
       deterministicOutput: true,
+      // Card 10: neither cleared library requires attribution in the
+      // exported video, and no in-video composition is required. Recorded
+      // as false rather than left on an earlier guess of true.
       attribution: {
-        required: true,
-        display: "Creator credit and source link required by library terms",
+        required: false,
+        display: "No attribution required by either cleared library; the source page and creator are still recorded in the plan",
       },
     };
   }
@@ -82,7 +95,9 @@ export class StockFootageAdapter implements FootageAdapter<"stock", StockCandida
       in: candidate.data.in,
       out: candidate.data.out,
       credit: candidate.data.credit,
-      reason: candidate.label,
+      reason:
+        `${candidate.label} — synthetic stock stub: no library was searched and this asset id ` +
+        "does not resolve at any library",
     };
   }
 }
