@@ -200,7 +200,7 @@ With nothing configured, no stage makes any external call at all. Every stage fa
 | **script** | Your model, at `SHORTREELCUTS_MODEL_BASE_URL` | **1** request per script-stage run — a full run, or any override that re-runs the script. Never more than one | The brief: your prompt, the target length, the tone | **Bring-your-own key: billed by that provider, per token.** A local runtime: no API cost, your CPU and RAM instead. The request asks for JSON at temperature 0.2 and **sends no seed**, so a hosted provider may answer the same brief differently each time — whatever comes back is recorded in the plan and re-used, never silently re-rolled |
 | **voice** | Your TTS, at `SHORTREELCUTS_VOICE_BASE_URL` | **0** external calls today | Nothing | **Nothing today.** The voice stage asks the provider for its voice list — and that list comes from `SHORTREELCUTS_VOICE_IDS` or six built-in names, with no request. The provider's `speak()` is implemented but **no stage calls it yet**, so a render's audio is a synthesized tone rather than speech. When speech lands the shape is **one request per narration line**, i.e. one per beat, each carrying that beat's text |
 | **footage** | Pexels or Pixabay, your key | **1** search request **per beat**, asking for 4 candidates each. A 2-beat video is 2 requests; a 5-beat video is 5. Re-running the footage stage re-issues them. **Pixabay responses are cached for 24 hours** as its terms require, so a repeat of the same search inside that window costs 0 requests | The beat's search term, and the requested orientation | **Free tier, and these limits are generous: Pexels 200 requests/hour and 20,000/month; Pixabay 100 requests per 60 seconds.** Read from each library's own documentation on 30 September 2026. **Neither library requires attribution in the exported video** (licence terms recorded in SPEC §11), and neither charges per clip |
-| **align** | Nothing external | **0** | Nothing | **Nothing.** Intended as a Whisper-family binary run as a separate process — CPU time, no API cost. The aligner is not built yet: the stage times words at a flat rate and its own recorded reason says *"not a measurement of real audio yet"* |
+| **align** | Nothing external | **0** | Nothing | **Nothing.** `whisper-cli` (whisper.cpp), run locally as a separate process against the generated narration — CPU time, no API cost. Needs the `whisper-cli` binary and a model file you supply (`SHORTREELCUTS_WHISPER_MODEL`; `SHORTREELCUTS_WHISPER_PATH` if the binary is not on the usual Homebrew paths). Without them the stage falls back to flat-rate timing and its recorded reason says so |
 | **frames** | Nothing external | 0 | Nothing | CPU time. Today it synthesizes one placeholder clip per beat |
 | **compose** | Nothing external — `ffmpeg`, spawned | 0 | Nothing | **CPU time and disk.** No API cost at all |
 
@@ -258,9 +258,9 @@ Supporting measurements, same session:
 | | Cost |
 |---|---|
 | A script from a hosted model | 1 request, billed by that provider per token. Unmeasured against any real model |
-| Speech for a video | 1 request per narration line. `speak()` is implemented and unit-tested against a mock endpoint; no stage calls it and no live endpoint has been called |
+| Speech for a video | 1 request per narration line. The voice stage calls `speak()` once a voice connection is configured; tested against a mock endpoint, and no live hosted endpoint has been called |
 | A Pexels or Pixabay search | 1 request per beat. Both adapters are tested against local mock HTTP servers; **neither has been called live** |
-| Alignment | 0 external calls by design. No aligner binary is built or installed |
+| Alignment | 0 external calls by design. Runs `whisper-cli` locally when configured; measured max drift 389 ms, mean 72 ms on an Apple M4 Mac mini (macOS 26.3, whisper.cpp `ggml-base`), 30 Sep 2026 — the 150 ms target is not met yet |
 
 ## What was verified, and what was not
 

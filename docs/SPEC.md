@@ -266,7 +266,7 @@ A render is resumable from its last completed stage. Closing the browser does no
 
 ## 11 · Models and footage sources
 
-Five slots. **Most of this is planned for v1.0.** The script, voice and stock-footage slots are implemented today: a `ScriptProvider`, a `VoiceProvider` and a `FootageProvider` — the last against Pexels or Pixabay with the self-hoster's own key — wired into the worker's stage runners, with deterministic stubs as explicit, recorded fallbacks when nothing is configured. Alignment and the rest remain planned.
+Five slots. **Most of this is planned for v1.0.** The script, voice and stock-footage slots are implemented today: a `ScriptProvider`, a `VoiceProvider` and a `FootageProvider` — the last against Pexels or Pixabay with the self-hoster's own key — wired into the worker's stage runners, with deterministic stubs as explicit, recorded fallbacks when nothing is configured. Alignment is **experimental**: `whisper-cli` runs as a separate process against the generated audio when a binary and model are configured, but it does not yet meet the 150 ms target (measured max 389 ms). The rest remain planned.
 
 | Slot | Planned for v1.0 |
 |---|---|
