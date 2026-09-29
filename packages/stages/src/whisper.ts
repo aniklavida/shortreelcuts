@@ -11,7 +11,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm } from "node:fs/promises";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { AlignedWord } from "@shortreelcuts/plan";
 
@@ -59,8 +58,6 @@ export function resolveWhisperModelPath(override?: string): string | undefined {
   if (process.env["WHISPER_MODEL"]) return process.env["WHISPER_MODEL"];
 
   const candidates = [
-    join(homedir(), "Library/Application Support/com.nimblewhisper.nimbleWhisper/NimbleWhisper/models/ggml-base.bin"),
-    join(homedir(), "Library/Application Support/com.nimblewhisper.nimbleWhisper/NimbleWhisper/models/ggml-small.bin"),
     "/opt/homebrew/share/whisper-cpp/models/ggml-base.bin",
     "/usr/local/share/whisper-cpp/models/ggml-base.bin",
   ];
