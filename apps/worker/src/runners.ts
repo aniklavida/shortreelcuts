@@ -38,6 +38,7 @@ import {
   resolveVoiceConnection,
   type FootageConnectionEnv,
   type MediaSink,
+  type MediaStore,
   type ModelConnectionEnv,
   type VoiceConnectionEnv,
 } from "@shortreelcuts/providers";
@@ -78,13 +79,16 @@ function envFromProcess(): ModelConnectionEnv & VoiceConnectionEnv & FootageConn
 }
 
 
-function makeFallbackMediaSink(): MediaSink {
+function makeFallbackMediaSink(): MediaStore {
   const store = new Map<string, Uint8Array>();
   return {
     async put(bytes: Uint8Array): Promise<string> {
       const key = `mem:${store.size}`;
       store.set(key, bytes);
       return key;
+    },
+    async get(key: string): Promise<Uint8Array | undefined> {
+      return store.get(key);
     },
   };
 }
@@ -129,7 +133,11 @@ export function defaultRunners(options: DefaultRunnersOptions = {}): StageRunner
     script: scriptRunnerFrom(env),
     voice: voiceRunnerFrom(env, media),
     footage: footageRunnerFrom(env),
-    align: runAlign,
+    align: (input) =>
+      runAlign({
+        ...input,
+        mediaStore: "get" in media ? (media as MediaStore) : undefined,
+      }),
     frames: runFrames,
     compose: runCompose,
   };

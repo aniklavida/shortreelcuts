@@ -69,11 +69,23 @@ export const ScriptSchema = z
 
 export type ScriptPlan = z.infer<typeof ScriptSchema>;
 
+export const VoiceTrackSchema = z
+  .object({
+    lineId: z.string().min(1),
+    mediaKey: z.string().min(1),
+    durationSeconds: z.number().positive(),
+  })
+  .strict();
+
+export type VoiceTrack = z.infer<typeof VoiceTrackSchema>;
+
 export const VoiceSchema = z
   .object({
     provider: z.string().min(1),
     voiceId: z.string().min(1),
     rate: z.number().positive(),
+    tracks: z.array(VoiceTrackSchema).optional(),
+    mediaKeys: z.record(z.string().min(1), z.string().min(1)).optional(),
     reason,
   })
   .strict();
@@ -220,6 +232,7 @@ export const AlignSchema = z
     provider: z.string().min(1),
     /** Keyed by beat id — word-level timings for that beat's narration. */
     words: z.record(z.string().min(1), z.array(AlignedWordSchema)),
+    mediaKeys: z.record(z.string().min(1), z.string().min(1)).optional(),
     reason,
   })
   .strict();

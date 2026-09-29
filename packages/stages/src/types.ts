@@ -75,6 +75,16 @@ export interface ComposeRunResult extends StageResult<Pick<Plan, "captions" | "m
   readonly video: VideoFile;
 }
 
+import type { MediaStore } from "@shortreelcuts/providers";
+import type { WhisperOptions } from "./whisper.js";
+
+export interface AlignRunInput extends PlanSoFarInput {
+  readonly workDir?: string | undefined;
+  readonly mediaStore?: MediaStore | undefined;
+  readonly audioFiles?: Record<string, string> | undefined;
+  readonly whisperOptions?: WhisperOptions | undefined;
+}
+
 /**
  * One runner per pipeline stage (`@shortreelcuts/plan`'s `STAGES`). A
  * runner is idempotent given the same plan-so-far: it may be called once
@@ -86,7 +96,7 @@ export interface StageRunners {
   script(input: ScriptRunInput): Promise<StageResult<Pick<Plan, "script">>>;
   voice(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "voice">>>;
   footage(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "footage">>>;
-  align(input: PlanSoFarInput): Promise<StageResult<Pick<Plan, "align">>>;
+  align(input: AlignRunInput): Promise<StageResult<Pick<Plan, "align">>>;
   frames(input: FramesRunInput): Promise<FramesRunResult>;
   compose(input: ComposeRunInput): Promise<ComposeRunResult>;
 }

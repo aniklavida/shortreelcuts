@@ -13,14 +13,33 @@
  * is GPL-3.0, and `fluent-ffmpeg` is archived and so unmaintained. We
  * require a system `ffmpeg`/`ffprobe` instead and document the install.
  */
+import { existsSync } from "node:fs";
 import { execa } from "execa";
 
 export function resolveFfmpegPath(override?: string): string {
-  return override ?? process.env["SHORTREELCUTS_FFMPEG_PATH"] ?? "ffmpeg";
+  if (override) return override;
+  if (process.env["SHORTREELCUTS_FFMPEG_PATH"]) return process.env["SHORTREELCUTS_FFMPEG_PATH"];
+  const candidates = [
+    "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+    "/usr/local/opt/ffmpeg-full/bin/ffmpeg",
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return "ffmpeg";
 }
 
 export function resolveFfprobePath(override?: string): string {
-  return override ?? process.env["SHORTREELCUTS_FFPROBE_PATH"] ?? "ffprobe";
+  if (override) return override;
+  if (process.env["SHORTREELCUTS_FFPROBE_PATH"]) return process.env["SHORTREELCUTS_FFPROBE_PATH"];
+  const candidates = [
+    "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+    "/usr/local/opt/ffmpeg-full/bin/ffprobe",
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return "ffprobe";
 }
 
 const filterListCache = new Map<string, Promise<Set<string>>>();
