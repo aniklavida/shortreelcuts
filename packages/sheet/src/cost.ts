@@ -10,6 +10,15 @@
  * good enough to prove the *mechanism* — a cost shown before a change is
  * applied — not a benchmark. Recalibrate this table, not the mechanism,
  * once real stages exist.
+ *
+ * One caveat on reading them as anything factual: wall-clock measurements for
+ * these same stage sets now exist, on one machine with every provider stubbed,
+ * and they do not all agree with this table — see "What a change costs,
+ * measured" in `docs/SELF_HOSTING.md`. They are published there with the
+ * machine and the date, because a measured number and a placeholder belong in
+ * different places: this table drives a sentence shown in a running interface,
+ * and that sentence has to be stable enough to test. Do not quietly promote a
+ * placeholder here without the measurement it came from.
  */
 import type { Stage } from "@shortreelcuts/plan";
 

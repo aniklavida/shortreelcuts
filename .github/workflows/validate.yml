@@ -32,6 +32,8 @@ jobs:
             docs/STRUCTURE.md
             docs/ROADMAP.md
             docs/RELEASE_CHECKLIST.md
+            docs/SELF_HOSTING.md
+            docs/DEPENDENCIES.md
           )
           for file in "${required[@]}"; do
             test -s "$file" || { echo "Missing or empty: $file"; exit 1; }
@@ -104,7 +106,10 @@ jobs:
         env:
           SHORTREELCUTS_WORKER_E2E: "1"
           SHORTREELCUTS_DATABASE_URL: "postgresql://postgres:password@localhost:5432/shortreelcuts_test"
-        run: npm run test:worker -- --fileParallelism=false
+        # No --fileParallelism flag here: the root script sets it, because all
+        # three files truncate the same `jobs` table and would otherwise erase
+        # each other's rows mid-run.
+        run: npm run test:worker
 
       - name: Report E2E test status
         run: |

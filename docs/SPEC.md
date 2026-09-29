@@ -1,6 +1,6 @@
 # ShortReelCuts — product specification
 
-**Status: draft. Nothing in this document is implemented.** Every capability described is planned. Where a table describes intended behaviour it is labelled a target, not a result.
+**Status: draft, and partly built.** A capability described here is only working if a section says so and a test covers it. Each section states which; §11 names the slots that are implemented today, and [`README.md`](../README.md#what-is-and-is-not-built) carries the single summary table. Where a table describes intended behaviour it is labelled a target, not a result.
 
 ## 1 · What it is
 
@@ -126,7 +126,7 @@ Six stages. Each is an adapter slot, each writes into the plan, each declares wh
 
 **The dependency graph is the feature.** It is what makes an override cheap. Re-running one beat's `frames` output — because that beat's clip or animation changed — never re-renders every other beat.
 
-**Target for v1, not a measured result:**
+**Which stages re-run is implemented and tested.** Every row of the "Re-runs" column below is a unit test against the invalidation function. **The "Expected cost" column is a target.** Wall-clock figures for these rows have since been measured on one machine with every provider stubbed, and are published with that machine and the date in [`SELF_HOSTING.md`](SELF_HOSTING.md#what-a-change-costs-measured). Any row whose cost involves a hosted model, a real speech engine or a live stock library remains a target: nothing has been run against one.
 
 | Change this | Re-runs | Expected cost |
 |---|---|---|
@@ -321,7 +321,7 @@ Two are permanent rather than deferred:
 docker compose up
 ```
 
-Postgres, the web app, the worker.
+Postgres, the web app, the worker. **[The full procedure — every environment variable, both run paths, and what was verified against what was only documented — is in `SELF_HOSTING.md`.](SELF_HOSTING.md)**
 
 | Component | Where it runs | Cost |
 |---|---|---|
@@ -339,13 +339,13 @@ Both questions that decide this bill are settled. **Planned for v1.0, not implem
 
 | Footage source | What leaves the machine | What it costs |
 |---|---|---|
-| Stock clips (Pexels, Pixabay) | The scene's search term, to that library | Free within the library's API limits. Both libraries' terms are cleared (card 10): no attribution is required in the exported video, cropping and trimming are permitted, and commercial use including selling the result is allowed. Their rate limits sit far above one video's needs — **a target, not a measurement: no live request has been made by this repository** |
+| Stock clips (Pexels, Pixabay) | The scene's search term, to that library | Free within the library's API limits. Both libraries' terms are cleared (card 10): no attribution is required in the exported video, cropping and trimming are permitted, and commercial use including selling the result is allowed. **One search request per beat**, and the published limits sit far above one video's needs — Pexels 200/hour and 20,000/month, Pixabay 100 per 60 seconds, both read from the libraries' own documentation on 30 Sep 2026. **A target, not a measurement: no live request has been made by this repository** |
 | AI-generated video | The scene description, to the generation provider you connect | Billed per clip by that provider. **Shown before the scene renders** |
 | Motion graphics written as code | The request to the model you connected, as for the script | The model's tokens, plus render time on your machine |
 
-**This documentation will state exactly which stages make an external call and what a video costs to produce, before anyone installs.** Nobody should find out about a bill after installing.
+**This documentation states exactly which stages make an external call and what a video costs to produce, before anyone installs.** Nobody should find out about a bill after installing. The settled version is [`SELF_HOSTING.md` § What a video costs](SELF_HOSTING.md#what-a-video-costs): one model request per script stage, one stock-library search per beat, and nothing else external — with the cost given as a shape, because no dollar figure has been measured and an invented one would be worse than none.
 
-**Hardware requirements are deliberately absent.** Video encoding is CPU-heavy and alignment may want a GPU, but nobody has measured this on real machines. A guess published in a README reads as a specification, so there is no table here until there is a measurement.
+**Hardware requirements are deliberately absent.** Video encoding is CPU-heavy and alignment may want a GPU. One machine has now been measured — the wall clock of every stage set with stub providers, published with that machine and the date in [`SELF_HOSTING.md`](SELF_HOSTING.md#what-a-change-costs-measured) — and one machine is not a specification. A guess published as a requirement reads as a guarantee, so there is still no requirement table, and no minimum specification will be published until somebody has measured more than one machine.
 
 ## 14 · Dependency policy
 
@@ -358,25 +358,25 @@ Both questions that decide this bill are settled. **Planned for v1.0, not implem
 
 That split is why `ffmpeg` is fine while a company-size-gated renderer is not. The question is never "is it good" but **"does a self-hoster inherit an obligation they did not choose"**.
 
-Verified through the GitHub API and by reading licence files, 13 Sep 2026:
+**The full inventory — every shipped dependency, its licence, how that licence was verified, the two non-MIT/Apache/BSD transitive entries and why they are acceptable, and the rejected candidates — is [`DEPENDENCIES.md`](DEPENDENCIES.md), re-verified from the installed tree on 30 Sep 2026.** The shape of it:
 
 | Concern | Choice | Licence | Class |
 |---|---|---|---|
 | Web app | Next.js | MIT | compiled |
-| UI | shadcn/ui + Tailwind | MIT | compiled |
+| UI | React, with this project's own CSS — **no component library, no CSS framework** | MIT | compiled |
 | Schema validation | zod | MIT | compiled |
 | Database | PostgreSQL + Drizzle | PostgreSQL / Apache-2.0 | process / compiled |
 | Queue | pg-boss, on the same PostgreSQL | MIT | compiled |
 | Spawning binaries | execa | MIT | compiled |
-| Rendering | **`ffmpeg`, invoked as a binary** | LGPL v2.1+ by default; GPL v2+ only when built with `--enable-gpl` | **process** |
+| Rendering | **`ffmpeg`, invoked as a binary** | LGPL v2.1+ by default; GPL v2+ when built with `--enable-gpl` | **process** |
 | Alignment | a Whisper-family runtime | MIT or BSD-2-Clause depending on which | **process** |
 
 **Rejected, with the reason recorded so they are not re-proposed:**
 
 | Candidate | Verified state | Why |
 |---|---|---|
-| **Remotion** | Not an OSI licence. Its `LICENSE.md` grants free use to individuals and to for-profit organisations with **up to 3 employees**; a paid company licence is required above that, and derivative products are restricted | The obvious TypeScript renderer for this job, and **every self-hoster would inherit a company-size-gated commercial obligation**. Disqualifying regardless of quality |
-| **`fluent-ffmpeg`** | MIT, but the repository is archived — last push 2025-05-22 | Unmaintained. Spawn `ffmpeg` through `execa` instead |
+| **Remotion** | Not an OSI licence. Its `LICENSE.md` grants free use to individuals and to for-profit organisations with **up to 3 employees**; a paid company licence is required above that | The obvious TypeScript renderer for this job, and **every self-hoster would inherit a company-size-gated commercial obligation**. Disqualifying regardless of quality |
+| **`fluent-ffmpeg`** | MIT; last publish 2025-05-22 | Unmaintained. Spawn `ffmpeg` through `execa` instead |
 | **`ffmpeg-static`** | GPL-3.0 | The convenient binary downloader is GPL-3.0. Require a system `ffmpeg` instead |
 | **`edge-tts`** | LGPLv3 apart from one MIT file | Copyleft, and it depends on a third party's undocumented speech endpoint. A self-hosted product whose voice needs someone else's service is not self-hosted |
 | **Coqui TTS** | MPL-2.0, last push 2024-08-16 | Unmaintained for over two years |
