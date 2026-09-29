@@ -83,7 +83,11 @@ export async function runAlign(input: AlignRunInput): Promise<StageResult<Pick<P
 
         const aligned = alignScriptToTranscription(beat.narration, transcribedWords, trackDuration);
         words[beat.id] = aligned;
-        alignedWithWhisper = true;
+        // Only credit real acoustic alignment when whisper returned at least one token.
+        // An empty transcription falls back to the same uniform estimate as the stub.
+        if (transcribedWords.length > 0) {
+          alignedWithWhisper = true;
+        }
       } catch {
         words[beat.id] = timeWords(beat.narration, input.plan.voice?.rate ?? 1.0);
       } finally {
