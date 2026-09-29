@@ -79,6 +79,11 @@ export interface MediaSink {
   put(bytes: Uint8Array, contentType: string): Promise<string>;
 }
 
+export interface MediaStore extends MediaSink {
+  /** Retrieves previously stored media bytes by key, or undefined if not found. */
+  get(key: string): Promise<Uint8Array | undefined>;
+}
+
 export interface AudioTrack {
   readonly lineId: string;
   /** The `MediaSink` key the bytes were stored under — never a filesystem path (`docs/SPEC.md` §7.3). */

@@ -153,6 +153,12 @@ const FIELD_RULES: readonly Rule[] = [
   // either way.
   prefix("footage.*.scene", "frames"),
   exact("footage.*.captionsInScene", "frames"),
+
+  // Audio tracks and media keys recorded once speech is generated or aligned.
+  // Stored stage artifacts, never user-editable decisions that trigger re-runs.
+  prefix("voice.tracks", null),
+  prefix("voice.mediaKeys", null),
+  prefix("align.mediaKeys", null),
 ];
 
 /**

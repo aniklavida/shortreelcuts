@@ -24,7 +24,7 @@
  * either came from a real decision or the stage fails, never a third option).
  */
 import type { Plan, VoicePlan } from "@shortreelcuts/plan";
-import type { VoiceDescriptor as ProviderVoiceDescriptor, VoiceProvider } from "@shortreelcuts/providers";
+import type { AudioTrack, VoiceDescriptor as ProviderVoiceDescriptor, VoiceProvider } from "@shortreelcuts/providers";
 import { makeRng, pick } from "./rng.js";
 import type { DecisionCandidate, PlanSoFarInput, StageResult, StageRunners } from "./types.js";
 
@@ -119,11 +119,34 @@ export function createVoiceRunner(provider: VoiceProvider): StageRunners["voice"
 
     const reason = `Selected "${chosen.label}" from connected voice provider (${provider.id}) at a normal speaking pace.`;
 
+    const rate = input.plan.voice?.rate ?? 1.0;
+    const lines = input.plan.script.beats.map((b) => ({
+      id: b.id,
+      text: b.narration,
+    }));
+
+    let tracks: AudioTrack[] = [];
+    try {
+      tracks = await provider.speak(lines, {
+        voiceId: chosen.id,
+        rate,
+      });
+    } catch (err) {
+      throw new VoiceGenerationError(provider.id, err);
+    }
+
+    const mediaKeys: Record<string, string> = {};
+    for (const track of tracks) {
+      mediaKeys[track.lineId] = track.mediaKey;
+    }
+
     const voice: VoicePlan = {
       provider: provider.id,
       voiceId: chosen.id,
-      rate: 1.0,
+      rate,
       reason,
+      tracks,
+      mediaKeys,
     };
 
     return {

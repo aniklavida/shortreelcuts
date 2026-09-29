@@ -162,6 +162,26 @@ describe("PlanSchema", () => {
     expect(() => parsePlan({ ...plan, script: { ...plan.script, beats: [] } })).toThrow();
   });
 
+  it("accepts voice with audio tracks and mediaKeys, and align with mediaKeys", () => {
+    const plan = makeFixturePlan();
+    expect(() =>
+      parsePlan({
+        ...plan,
+        voice: {
+          ...plan.voice,
+          tracks: [
+            { lineId: "b1", mediaKey: "sha256:track-1", durationSeconds: 2.5 },
+          ],
+          mediaKeys: { b1: "sha256:track-1" },
+        },
+        align: {
+          ...plan.align,
+          mediaKeys: { b1: "sha256:track-1" },
+        },
+      }),
+    ).not.toThrow();
+  });
+
   it("PlanSchema.safeParse reports failure without throwing", () => {
     const result = PlanSchema.safeParse({ not: "a plan" });
     expect(result.success).toBe(false);

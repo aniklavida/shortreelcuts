@@ -84,4 +84,45 @@ describe("createVoiceRunner", () => {
 
     await expect(runner({ plan })).rejects.toThrow(VoiceGenerationError);
   });
+
+  it("calls provider.speak and records tracks and mediaKeys in patch.voice", async () => {
+    let capturedLines: any = null;
+    let capturedChoice: any = null;
+    const provider = {
+      id: "test-voice-provider",
+      voices: async () => [{ id: "v1", label: "Voice 1" }],
+      speak: async (lines: any, choice: any) => {
+        capturedLines = lines;
+        capturedChoice = choice;
+        return lines.map((l: any, i: number) => ({
+          lineId: l.id,
+          mediaKey: `sha256:audio-${i}`,
+          durationSeconds: 2.0,
+        }));
+      },
+    };
+    const runner = createVoiceRunner(provider);
+    const plan = makeSheetFixturePlan();
+
+    const result = await runner({ plan });
+
+    expect(capturedLines).toHaveLength(plan.script.beats.length);
+    expect(capturedChoice?.voiceId).toBe("v1");
+    expect(result.patch.voice.tracks).toHaveLength(plan.script.beats.length);
+    expect(result.patch.voice.mediaKeys?.[plan.script.beats[0]!.id]).toBe("sha256:audio-0");
+  });
+
+  it("fails loudly with VoiceGenerationError when provider.speak fails", async () => {
+    const provider = {
+      id: "test-voice-provider",
+      voices: async () => [{ id: "v1", label: "Voice 1" }],
+      speak: async () => {
+        throw new Error("TTS engine synthesis failure");
+      },
+    };
+    const runner = createVoiceRunner(provider);
+    const plan = makeSheetFixturePlan();
+
+    await expect(runner({ plan })).rejects.toThrow(VoiceGenerationError);
+  });
 });

@@ -50,7 +50,7 @@ async function runOneStage(
     case "footage":
       return runners.footage({ plan: draft as Plan }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "align":
-      return runners.align({ plan: draft as Plan }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
+      return runners.align({ plan: draft as Plan, workDir }).then((r) => ({ patch: r.patch, candidates: r.candidates }));
     case "frames":
       return runners
         .frames({ plan: draft as Plan, workDir })
