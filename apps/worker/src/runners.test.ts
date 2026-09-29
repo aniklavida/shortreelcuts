@@ -176,11 +176,59 @@ function fixturePlan(): Plan {
   };
 }
 
+function wavBytes(seconds: number, sampleRate = 8000): Uint8Array {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = Math.round(byteRate * seconds);
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const tag = (offset: number, text: string): void => {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  tag(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  tag(8, "WAVE");
+  tag(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  tag(36, "data");
+  view.setUint32(40, dataSize, true);
+  return new Uint8Array(buffer);
+}
+
 describe("defaultRunners voice wiring", () => {
+  let server: Server;
+  let baseURL: string;
+  let lastAuthHeader: string | undefined;
+
+  beforeEach(async () => {
+    lastAuthHeader = undefined;
+    server = createServer(async (req, res) => {
+      lastAuthHeader = req.headers["authorization"];
+      res.writeHead(200, { "content-type": "audio/wav" });
+      res.end(Buffer.from(wavBytes(1.5)));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("expected an AddressInfo");
+    baseURL = `http://127.0.0.1:${address.port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
   it("uses the real voice provider when a local connection is configured", async () => {
     const runners = defaultRunners({
       env: {
-        SHORTREELCUTS_VOICE_BASE_URL: "http://127.0.0.1:5002/v1",
+        SHORTREELCUTS_VOICE_BASE_URL: baseURL,
         SHORTREELCUTS_VOICE_NAME: "local-tts",
         SHORTREELCUTS_VOICE_IDS: "voice-a,voice-b",
       },
@@ -191,15 +239,18 @@ describe("defaultRunners voice wiring", () => {
     expect(result.patch.voice.provider).toBe("openai-compatible:local");
     expect(["voice-a", "voice-b"]).toContain(result.patch.voice.voiceId);
     expect(result.patch.voice.reason).toContain("openai-compatible:local");
+    expect(result.patch.voice.tracks).toBeDefined();
+    expect(result.patch.voice.tracks?.length).toBeGreaterThan(0);
     const candidates = result.candidates["voice.voiceId"];
     expect(candidates).toHaveLength(2);
     expect(candidates?.find((c) => c.chosen)?.id).toBe(result.patch.voice.voiceId);
+    expect(lastAuthHeader).toBeUndefined();
   });
 
   it("uses the real voice provider with byok key and keeps it out of the plan and candidates", async () => {
     const runners = defaultRunners({
       env: {
-        SHORTREELCUTS_VOICE_BASE_URL: "https://api.example.com/v1",
+        SHORTREELCUTS_VOICE_BASE_URL: baseURL,
         SHORTREELCUTS_VOICE_NAME: "hosted-tts",
         SHORTREELCUTS_VOICE_API_KEY: SECRET_KEY,
         SHORTREELCUTS_VOICE_IDS: "alloy,nova",
@@ -209,6 +260,7 @@ describe("defaultRunners voice wiring", () => {
     const result = await runners.voice({ plan: fixturePlan() });
 
     expect(result.patch.voice.provider).toBe("openai-compatible:byok");
+    expect(lastAuthHeader).toBe(`Bearer ${SECRET_KEY}`);
     expect(JSON.stringify(result.patch)).not.toContain(SECRET_KEY);
     expect(JSON.stringify(result.candidates)).not.toContain(SECRET_KEY);
   });
@@ -241,7 +293,7 @@ describe("defaultRunners voice wiring", () => {
     try {
       const runners = defaultRunners({
         env: {
-          SHORTREELCUTS_VOICE_BASE_URL: "https://api.example.com/v1",
+          SHORTREELCUTS_VOICE_BASE_URL: baseURL,
           SHORTREELCUTS_VOICE_NAME: "tts-1",
           SHORTREELCUTS_VOICE_API_KEY: SECRET_KEY,
           SHORTREELCUTS_VOICE_IDS: "alloy,nova",
