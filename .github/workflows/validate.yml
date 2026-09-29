@@ -102,6 +102,15 @@ jobs:
       - name: Test
         run: npm run test
 
+      # Only the slower suites below get an encoder. The fast suite above runs
+      # with no ffmpeg on the runner on purpose — AGENTS.md: the fast suite
+      # never depends on an encoder.
+      - name: Install ffmpeg for the worker e2e suite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version
+
       - name: Worker tests
         env:
           SHORTREELCUTS_WORKER_E2E: "1"
@@ -113,5 +122,7 @@ jobs:
 
       - name: Report E2E test status
         run: |
-          echo "Notice: E2E tests (test:e2e) are excluded from this CI job."
-          echo "Reason: They require a real render pipeline (ffmpeg, external services), which is unsuitable for CI. They must be run locally or in a dedicated integration environment. This suite is explicitly skipped."
+          echo "Notice: the render e2e suite (test:e2e) is excluded from this CI job."
+          echo "Reason: it renders full videos with ffmpeg and takes minutes, which is unsuitable for a per-commit job."
+          echo "It runs locally with a real ffmpeg: npm run test:e2e. The worker e2e suite above does run here,"
+          echo "because it only needs a throwaway Postgres plus ffmpeg for the frames stage's stand-in clips."

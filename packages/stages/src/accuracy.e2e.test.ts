@@ -21,6 +21,12 @@
  *   ground truth, that fallback produces max drift 4307 ms and mean drift
  *   2131 ms over 15 words.  The 150 ms criterion is NOT YET VERIFIABLE on
  *   this machine: a real ggml-base or ggml-small model is required.
+ *
+ * Needs real binaries — macOS `say`, `ffmpeg`, `ffprobe` and `whisper-cli`
+ * with a model — so it belongs to the slower suite, not to the fast one that
+ * runs on every commit. Opt in with `SHORTREELCUTS_RENDER_E2E=1` (see the
+ * root `test:e2e` script) and still requires whisper to be available. Skipped
+ * otherwise, so `npm test` needs no encoder, no speech engine and no model.
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -33,6 +39,8 @@ import { runAlign } from "./align.js";
 import { makeSheetFixturePlan } from "./testing/fixtures.js";
 import { isWhisperAvailable, wordSimilarity } from "./whisper.js";
 
+const RUN_E2E = process.env["SHORTREELCUTS_RENDER_E2E"] === "1";
+
 // Fixed narration — contains numbers, names and abbreviations on purpose.
 const NARRATION =
   "Dr. Smith counted 15 rockets at NASA. Prof. O'Connor noted 200 satellites at 8 a.m.";
@@ -44,7 +52,7 @@ const NARRATION_WORDS = NARRATION.trim()
 // Inter-word silence inserted between word clips (seconds).
 const GAP_S = 0.12;
 
-describe("Caption accuracy against a constructed ground truth", () => {
+describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth", () => {
   const whisperReady = isWhisperAvailable();
   const testDir = join(process.cwd(), "media", `acc-gt-${randomUUID()}`);
 

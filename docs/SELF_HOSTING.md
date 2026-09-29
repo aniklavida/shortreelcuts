@@ -116,14 +116,14 @@ npm run typecheck
 npm test
 ```
 
-Those two need nothing but Node — no database, no encoder, no network. Two opt-in suites do:
+Those two need nothing but Node — no database, no encoder, no network. That is a rule, not an accident: no file matching `*.test.ts` outside the `.e2e.` naming reaches for `ffmpeg`, `ffprobe`, `whisper-cli` or `say`. Two opt-in suites do:
 
 ```
-npm run test:e2e      # real ffmpeg: renders the hand-written plan fixture
-npm run test:worker   # real Postgres: the job queue and resumption
+npm run test:e2e      # real ffmpeg: renders the plan fixture, encodes frames, measures caption accuracy
+npm run test:worker   # real Postgres and ffmpeg: the job queue and resumption
 ```
 
-`test:e2e` needs an `ffmpeg` with libass, so give it the same paths as the worker. `test:worker` needs `SHORTREELCUTS_DATABASE_URL` pointing at a throwaway database — all three of its files `truncate` the `jobs` table, so use a database you do not mind emptying.
+`test:e2e` needs an `ffmpeg` with libass, so give it the same paths as the worker. Its caption-accuracy file additionally needs macOS `say` and a `whisper-cli` model; without them it reports that it skipped instead of failing, so it passes on Linux where those are absent. `test:worker` needs `SHORTREELCUTS_DATABASE_URL` pointing at a throwaway database — all three of its files `truncate` the `jobs` table, so use a database you do not mind emptying — and an `ffmpeg`, because the frames stage encodes its stand-in clips even though compose is doubled in that suite.
 
 ## Every environment variable
 
@@ -268,8 +268,8 @@ Supporting measurements, same session:
 |---|---|
 | `docker compose up` | **Not run.** No Docker on the machine this was written on. Everything in section A is read off the compose file and the two Dockerfiles |
 | `npm run typecheck` | **Verified** — clean, all 8 workspaces |
-| `npm test` | **Verified** — 385 passed, 19 skipped, 31 files, under 4 s, no database or encoder needed |
-| `npm run test:e2e` | **Verified** — 7 passed, ~16 s, real `ffmpeg` |
+| `npm test` | **Verified** — 407 passed, 22 skipped, 32 files, under 3 s, no database, encoder or network needed |
+| `npm run test:e2e` | **Verified** — 10 passed, ~17 s, real `ffmpeg`. The caption-accuracy file ran its real-speech measurement and reported itself skipped, because no `whisper-cli` model was installed on that machine |
 | `npm run test:worker` | **Verified** — 9 passed against a real Postgres. The three files each `truncate` the `jobs` table, so the root script now runs them with `--fileParallelism=false`; without that flag they truncate each other's rows mid-run |
 | `next build` | **Verified** — compiles, typechecks, prerenders |
 | Postgres → worker → web app → a finished MP4 | **Verified end to end.** The job was `done` within about six seconds of submission, 18 decisions each carrying a reason, a 10.8-second 1080×1920 H.264/AAC file with captions burned in |
