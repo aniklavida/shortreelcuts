@@ -159,6 +159,20 @@ than anything a provider produced. No release exists.
   in parallel they erased each other's rows mid-run — which is why CI was
   already passing the flag by hand. The documented command is now the one that
   works.
+- **The fast suite no longer spawns an encoder.** `packages/stages`' frames
+  tests encoded a clip per beat with a real `ffmpeg`, so `npm run test` failed
+  with `spawn ffmpeg ENOENT` on a runner that has none — the Validate workflow
+  on `develop` was red for that reason. The two encoder-backed frames tests
+  moved, unmodified, to `frames.e2e.test.ts` behind `SHORTREELCUTS_RENDER_E2E=1`
+  and into `npm run test:e2e`; `frames.test.ts` is new and covers the stage's
+  pure decisions instead — the per-beat content key that names an artefact, and
+  the rule that a beat outside the invalidated scope keeps the clip it already
+  has, byte for byte. `accuracy.test.ts` moved to `accuracy.e2e.test.ts` for
+  the same reason: it needs macOS `say`, `ffmpeg`, `ffprobe` and a
+  `whisper-cli` model, and it was reaching for all four from the fast suite,
+  passing only because the runner happened to have no whisper model. CI's
+  `test:worker` step now installs `ffmpeg` — that suite runs the real frames
+  stage — while the fast suite above it still runs with no encoder present.
 
 ### Verified
 
@@ -170,10 +184,11 @@ than anything a provider produced. No release exists.
   stage that made it.
 - A worker with `SHORTREELCUTS_FOOTAGE_PROVIDER` set and no key **refuses to
   boot**, with a message naming the variable to set.
-- `npm run typecheck` clean across all 8 workspaces; `npm test` 385 passed /
-  19 skipped; `npm run test:e2e` 7 passed against a real `ffmpeg`;
-  `npm run test:worker` 9 passed against a real Postgres; `next build`
-  compiles and prerenders.
+- `npm run typecheck` clean across all 8 workspaces; `npm test` 407 passed /
+  22 skipped, with `SHORTREELCUTS_FFMPEG_PATH` pointed at a non-existent
+  binary to prove no test in it reaches for an encoder; `npm run test:e2e`
+  10 passed against a real `ffmpeg`; `npm run test:worker` 9 passed against a
+  real Postgres; `next build` compiles and prerenders.
 - **Not run, and documented as not run:** `docker compose up`. No Docker was
   available on the machine this documentation was written on.
 
