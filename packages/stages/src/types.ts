@@ -1,14 +1,14 @@
 /**
  * The stage runner contract the decision sheet is built against.
  *
- * The sheet is built against stubbed stages on purpose. Only `compose`
- * has a real implementation anywhere in this repository
- * (`@shortreelcuts/render`) — `script`, `voice`, `footage` and `align`
- * do not exist as products yet. This file is the seam that keeps that
- * honest: every stub implements the same shape a
- * real provider-backed stage would, so wiring in a real script/voice/
- * footage/align stage later means swapping the object passed to
- * `ProjectSession`, not touching the sheet.
+ * The sheet is built against stubbed stages on purpose. `compose` is the
+ * only stage with a real implementation in this repository
+ * (`@shortreelcuts/render`); `script`, `voice` and stock `footage` each
+ * have a provider-backed runner alongside their deterministic stub, and
+ * `align` is a stub with no real provider behind it yet. This file is the
+ * seam that keeps that honest: every stub implements the same shape a
+ * real provider-backed stage would, so wiring in a real stage later means
+ * swapping the object passed to `ProjectSession`, not touching the sheet.
  *
  * This mirrors SPEC.md §7's adapter rule in spirit — "a provider returns
  * candidates, never a final choice" — one level up: here a *stage*

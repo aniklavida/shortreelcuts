@@ -1,18 +1,30 @@
 /**
- * Proves the script wiring in `defaultRunners`: a configured model
- * connection drives the real provider, no connection gets the explicitly
- * marked stub, a parse failure fails loudly instead of falling back, and
- * the configured key reaches neither the plan nor the logs.
+ * Proves the script, voice and footage wiring in `defaultRunners`: a
+ * configured connection drives the real provider, no connection gets the
+ * explicitly marked stub, a bad response fails loudly instead of falling
+ * back, and the configured key reaches neither the plan nor the logs.
  *
- * The model is a controlled local HTTP server standing in for any
- * OpenAI-chat-completions endpoint — the same technique
+ * The model, the speech endpoint and the stock library are controlled
+ * local HTTP servers standing in for any real one — the same technique
  * `openAiCompatible.test.ts` uses, and the same one that makes a hosted
  * BYOK key and a local runtime one request shape (`docs/SPEC.md` §5.1).
+ * No test in this repository calls a real provider over the network.
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Brief, Plan } from "@shortreelcuts/plan";
-import { createVoiceRunner, ScriptGenerationError, VoiceGenerationError } from "@shortreelcuts/stages";
+import {
+  MissingFootageApiKeyError,
+  PlanMediaUrlLeakError,
+  UnknownFootageProviderError,
+} from "@shortreelcuts/providers";
+import {
+  createVoiceRunner,
+  FootageSearchError,
+  ScriptGenerationError,
+  VoiceGenerationError,
+  runFootage,
+} from "@shortreelcuts/stages";
 import { defaultRunners } from "./runners.js";
 
 const BRIEF: Brief = { prompt: "why the ocean is salty", targetSeconds: 20, tone: "calm" };
@@ -244,5 +256,245 @@ describe("defaultRunners voice wiring", () => {
     } finally {
       for (const spy of spies) spy.mockRestore();
     }
+  });
+});
+
+/**
+ * The stock library the footage wiring talks to, answering in both
+ * libraries' documented shapes on one port. Its download links are
+ * deliberately distinctive so a test can assert they never appear in a
+ * plan — that assertion is the point of the whole fixture.
+ */
+const PEXELS_DOWNLOAD = "https://videos.pexels.com/video-files/9/9-hd_1920_1080.mp4";
+const PIXABAY_DOWNLOAD = "https://cdn.pixabay.com/video/2015/08/08/77-large.mp4";
+
+function pexelsSearchBody(): unknown {
+  return {
+    videos: [
+      {
+        id: 111,
+        duration: 9,
+        url: "https://www.pexels.com/video/mist-111/",
+        user: { name: "Rowan Ito" },
+        video_files: [{ id: 1, file_type: "video/mp4", width: 1920, height: 1080, link: PEXELS_DOWNLOAD }],
+      },
+      {
+        id: 222,
+        duration: 12,
+        url: "https://www.pexels.com/video/mist-222/",
+        user: { name: "Rowan Ito" },
+        video_files: [{ id: 1, file_type: "video/mp4", width: 1920, height: 1080, link: PEXELS_DOWNLOAD }],
+      },
+    ],
+  };
+}
+
+function pixabaySearchBody(): unknown {
+  return {
+    hits: [
+      {
+        id: 77,
+        pageURL: "https://pixabay.com/videos/id-77/",
+        duration: 9,
+        user: "Amara Odell",
+        videos: { large: { url: PIXABAY_DOWNLOAD, width: 1920, height: 1080 } },
+      },
+      {
+        id: 78,
+        pageURL: "https://pixabay.com/videos/id-78/",
+        duration: 12,
+        user: "Amara Odell",
+        videos: { large: { url: PIXABAY_DOWNLOAD, width: 1920, height: 1080 } },
+      },
+    ],
+  };
+}
+
+describe("defaultRunners footage wiring", () => {
+  let server: Server;
+  let baseURL: string;
+  let requests: { path: string; search: URLSearchParams; auth: string | undefined }[];
+  let respondWith: () => { status: number; body: string; contentType: string };
+
+  beforeEach(async () => {
+    requests = [];
+    respondWith = () => ({ status: 200, body: JSON.stringify(pexelsSearchBody()), contentType: "application/json" });
+    server = createServer((req, res) => {
+      const url = new URL(req.url ?? "", "http://127.0.0.1");
+      requests.push({ path: url.pathname, search: url.searchParams, auth: req.headers["authorization"] });
+      const { status, body, contentType } = respondWith();
+      res.writeHead(status, { "content-type": contentType });
+      res.end(body);
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("expected an AddressInfo");
+    baseURL = `http://127.0.0.1:${address.port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  const pexelsEnv = () => ({
+    SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels",
+    SHORTREELCUTS_FOOTAGE_API_KEY: SECRET_KEY,
+    SHORTREELCUTS_FOOTAGE_BASE_URL: baseURL,
+  });
+
+  const pixabayEnv = () => ({
+    SHORTREELCUTS_FOOTAGE_PROVIDER: "pixabay",
+    SHORTREELCUTS_FOOTAGE_API_KEY: SECRET_KEY,
+    SHORTREELCUTS_FOOTAGE_BASE_URL: baseURL,
+  });
+
+  it("uses the real provider when Pexels is configured, and records the library's asset id", async () => {
+    const plan = fixturePlan();
+    const result = await defaultRunners({ env: pexelsEnv() }).footage({ plan });
+
+    expect(requests.length).toBe(plan.script.beats.length);
+    expect(requests[0]?.path).toBe("/videos/search");
+    expect(requests[0]?.search.get("query")).toBe(plan.script.beats[0]?.search);
+    expect(requests[0]?.auth).toBe(SECRET_KEY);
+
+    for (const beat of plan.script.beats) {
+      const clip = result.patch.footage[beat.id];
+      if (clip?.source !== "stock") throw new Error("expected a stock clip");
+      expect(clip.provider).toBe("pexels");
+      expect(["111", "222"]).toContain(clip.assetId);
+      expect(clip.reason).toContain("pexels");
+      expect(clip.reason).toContain(beat.search);
+    }
+  });
+
+  it("uses the real provider when Pixabay is configured, and keeps its key out of everything but the request", async () => {
+    respondWith = () => ({ status: 200, body: JSON.stringify(pixabaySearchBody()), contentType: "application/json" });
+    const plan = fixturePlan();
+    const result = await defaultRunners({ env: pixabayEnv() }).footage({ plan });
+
+    expect(requests[0]?.path).toBe("/videos/");
+    expect(requests[0]?.search.get("key")).toBe(SECRET_KEY);
+    expect(requests[0]?.search.get("q")).toBe(plan.script.beats[0]?.search);
+
+    for (const beat of plan.script.beats) {
+      const clip = result.patch.footage[beat.id];
+      if (clip?.source !== "stock") throw new Error("expected a stock clip");
+      expect(clip.provider).toBe("pixabay");
+      expect(["77", "78"]).toContain(clip.assetId);
+    }
+    expect(JSON.stringify(result.patch)).not.toContain(SECRET_KEY);
+    expect(JSON.stringify(result.candidates)).not.toContain(SECRET_KEY);
+  });
+
+  it("stores the library's asset id in the plan and never a media URL or a file", async () => {
+    const plan = fixturePlan();
+    const result = await defaultRunners({ env: pexelsEnv() }).footage({ plan });
+
+    const serialised = JSON.stringify(result.patch);
+    expect(serialised).not.toContain(PEXELS_DOWNLOAD);
+    expect(serialised).not.toContain("videos.pexels.com");
+    expect(serialised).not.toContain(".mp4");
+    for (const clip of Object.values(result.patch.footage)) {
+      if (clip.source !== "stock") throw new Error("expected a stock clip");
+      // The only identifier that re-points at the media is the asset id,
+      // and it is re-resolved at render time rather than stored.
+      expect(clip.assetId).toMatch(/^(111|222)$/);
+      expect(clip.credit.pageUrl).toContain("www.pexels.com");
+    }
+  });
+
+  it("falls back to the marked stub, and sends no request, when no footage provider is configured", async () => {
+    const runners = defaultRunners({ env: {} });
+    // The documented fallback is this stage, not a copy of it.
+    expect(runners.footage).toBe(runFootage);
+
+    const result = await runners.footage({ plan: fixturePlan() });
+
+    for (const clip of Object.values(result.patch.footage)) {
+      if (clip.source !== "stock") throw new Error("expected a stock clip");
+      expect(clip.provider).toBe("stub");
+      expect(clip.reason).toContain("stub");
+      expect(clip.reason).toContain("no stock library was searched");
+    }
+    expect(requests).toHaveLength(0);
+  });
+
+  it("fails the worker at boot, rather than quietly stubbing, when a library is named without a key", () => {
+    expect(() => defaultRunners({ env: { SHORTREELCUTS_FOOTAGE_PROVIDER: "pexels" } })).toThrow(MissingFootageApiKeyError);
+  });
+
+  it("fails the worker at boot, rather than guessing, when the named library has no adapter", () => {
+    expect(() =>
+      defaultRunners({ env: { SHORTREELCUTS_FOOTAGE_PROVIDER: "coverr", SHORTREELCUTS_FOOTAGE_API_KEY: SECRET_KEY } }),
+    ).toThrow(UnknownFootageProviderError);
+  });
+
+  it("fails the stage loudly on a non-2xx from the library, with no key in the message", async () => {
+    respondWith = () => ({ status: 401, body: JSON.stringify({ error: "invalid key" }), contentType: "application/json" });
+    const runners = defaultRunners({ env: pexelsEnv() });
+
+    const failure = runners.footage({ plan: fixturePlan() });
+    await expect(failure).rejects.toBeInstanceOf(FootageSearchError);
+    await expect(failure).rejects.not.toThrow(new RegExp(SECRET_KEY));
+  });
+
+  it("fails the stage loudly on an unparseable 2xx, rather than falling back to the stub", async () => {
+    respondWith = () => ({ status: 200, body: "<html>maintenance</html>", contentType: "text/html" });
+    const runners = defaultRunners({ env: pexelsEnv() });
+
+    await expect(runners.footage({ plan: fixturePlan() })).rejects.toBeInstanceOf(FootageSearchError);
+  });
+
+  it("fails the stage loudly when the library returns no clips for the search term", async () => {
+    respondWith = () => ({ status: 200, body: JSON.stringify({ videos: [] }), contentType: "application/json" });
+    const runners = defaultRunners({ env: pexelsEnv() });
+
+    await expect(runners.footage({ plan: fixturePlan() })).rejects.toBeInstanceOf(FootageSearchError);
+  });
+
+  it("never writes the configured footage key to the console while sourcing", async () => {
+    const spies = (["log", "info", "warn", "error", "debug"] as const).map((method) =>
+      vi.spyOn(console, method).mockImplementation(() => undefined),
+    );
+
+    try {
+      // Spied across both wiring (connection resolution at construction) and the stage run.
+      const runners = defaultRunners({ env: pexelsEnv() });
+      await runners.footage({ plan: fixturePlan() });
+      for (const spy of spies) {
+        for (const call of spy.mock.calls) {
+          expect(call.join(" ")).not.toContain(SECRET_KEY);
+        }
+      }
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+  });
+
+  it("refuses a library answer whose asset id is a download URL, instead of recording it in a shareable plan", async () => {
+    respondWith = () => ({
+      status: 200,
+      body: JSON.stringify({
+        videos: [
+          {
+            id: PEXELS_DOWNLOAD,
+            duration: 9,
+            url: "https://www.pexels.com/video/mist-111/",
+            user: { name: "Rowan Ito" },
+            video_files: [],
+          },
+        ],
+      }),
+      contentType: "application/json",
+    });
+    const runners = defaultRunners({ env: pexelsEnv() });
+
+    await expect(runners.footage({ plan: fixturePlan() })).rejects.toBeInstanceOf(PlanMediaUrlLeakError);
+  });
+
+  it("rejects a malformed footage base URL at boot rather than mid-render", () => {
+    expect(() =>
+      defaultRunners({ env: { ...pexelsEnv(), SHORTREELCUTS_FOOTAGE_BASE_URL: "not-a-url" } }),
+    ).toThrow(/absolute http\(s\) URL/);
   });
 });
