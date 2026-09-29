@@ -40,6 +40,31 @@ describe("wordSimilarity", () => {
     expect(wordSimilarity("Jean-Luc", "Jean-Luc")).toBe(1.0);
   });
 
+  it("expands whisper's symbol tokens (e.g. @ for the word at)", () => {
+    // Whisper renders "at NASA" as one "@NASA," segment; the two script words
+    // must be able to match it so the aligner can split it.
+    expect(wordSimilarity("at NASA.", "@NASA,")).toBe(1.0);
+    expect(wordSimilarity("at NASA.", "@NASA")).toBe(1.0);
+    // The symbol expansion alone must not make a merged two-word string match
+    // a single unrelated script word.
+    expect(wordSimilarity("at 8", "@8am.")).toBe(0);
+  });
+
+  it("matches spelled-out military and honoric abbreviations", () => {
+    expect(wordSimilarity("Capt.", "captain")).toBe(1.0);
+    expect(wordSimilarity("Sgt.", "sergeant")).toBe(1.0);
+    expect(wordSimilarity("Sgt.", "Sargent")).toBe(1.0);
+    expect(wordSimilarity("Gen.", "general")).toBe(1.0);
+    expect(wordSimilarity("Lt.", "lieutenant")).toBe(1.0);
+    expect(wordSimilarity("Col.", "colonel")).toBe(1.0);
+  });
+
+  it("matches numbers with thousands separators", () => {
+    expect(wordSimilarity("7,000", "7000")).toBe(1.0);
+    expect(wordSimilarity("3,500", "3500")).toBe(1.0);
+    expect(wordSimilarity("1,200", "1200")).toBe(1.0);
+  });
+
   it("tolerates minor transcription variations in longer words", () => {
     expect(wordSimilarity("Jonathan", "Jonathon")).toBeGreaterThanOrEqual(0.8);
     expect(wordSimilarity("different", "unrelated")).toBe(0);
@@ -116,6 +141,26 @@ describe("alignScriptToTranscription", () => {
     expect(aligned[2]!.startSeconds).toBe(0.4);
     expect(aligned[3]!.word).toBe("five");
     expect(aligned[3]!.endSeconds).toBe(1.0);
+  });
+
+  it("splits a whisper word that merged a short word with the next word", () => {
+    // whisper-cli with -ml 1 -sow can emit "at NASA" as the single segment
+    // "@NASA,".  Both script words must be placed, and the second must not be
+    // pushed to a fallback slot at the start of the merged segment.
+    const script = "rockets at NASA. done";
+    const transcribed: TranscribedWord[] = [
+      { word: "rockets", startSeconds: 0.0, endSeconds: 0.5 },
+      { word: "@NASA,", startSeconds: 0.5, endSeconds: 1.5 },
+      { word: "done", startSeconds: 1.5, endSeconds: 2.0 },
+    ];
+
+    const aligned = alignScriptToTranscription(script, transcribed, 2.0);
+
+    expect(aligned.map((a) => a.word)).toEqual(["rockets", "at", "NASA.", "done"]);
+    // The two matched words split the merged segment, so "NASA." lands at its
+    // midpoint rather than at the segment's start.
+    expect(aligned[1]!.startSeconds).toBe(0.5);
+    expect(aligned[2]!.startSeconds).toBe(1.0);
   });
 
   it("falls back to even distribution when transcription is empty", () => {
