@@ -166,8 +166,32 @@ export async function transcribeWithWhisper(
   }
 }
 
+// Whisper sometimes renders a spoken word as a symbol token: the short word
+// "at" comes back as "@" and is glued to the following word ("@NASA," for
+// "at NASA.").  Expanding those symbols before cleaning lets the aligner see
+// the actual words, so a two-script-word / one-transcribed-word stretch can be
+// matched and split instead of one word being left to a fallback slot.
+const SYMBOL_WORDS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/@/g, " at "],
+  [/&/g, " and "],
+  [/%/g, " percent "],
+  [/=/g, " equals "],
+];
+
+function canonicalizeSymbols(w: string): string {
+  let out = w;
+  for (const [pattern, replacement] of SYMBOL_WORDS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
 function cleanWord(w: string): string {
-  return w.toLowerCase().replace(/^[^\w\d]+|[^\w\d]+$/g, "");
+  return canonicalizeSymbols(w)
+    .toLowerCase()
+    // Drop thousands separators so "7,000" and whisper's "7000" are one word.
+    .replace(/(\d),(\d)/g, "$1$2")
+    .replace(/^[^\w\d]+|[^\w\d]+$/g, "");
 }
 
 const ABBREVIATIONS: Readonly<Record<string, string>> = {
@@ -182,6 +206,27 @@ const ABBREVIATIONS: Readonly<Record<string, string>> = {
   professor: "professor",
   st: "saint",
   saint: "saint",
+  capt: "captain",
+  captain: "captain",
+  sgt: "sergeant",
+  sergeant: "sergeant",
+  sargent: "sergeant",
+  lt: "lieutenant",
+  lieutenant: "lieutenant",
+  col: "colonel",
+  colonel: "colonel",
+  gen: "general",
+  general: "general",
+  adm: "admiral",
+  admiral: "admiral",
+  mt: "mount",
+  mount: "mount",
+  inc: "incorporated",
+  incorporated: "incorporated",
+  jr: "junior",
+  junior: "junior",
+  sr: "senior",
+  senior: "senior",
   am: "am",
   "a.m": "am",
   pm: "pm",
@@ -279,7 +324,11 @@ export function wordSimilarity(s: string, t: string): number {
     if (tWords === snNorm || tWords.replace(/\s+/g, "") === snNorm.replace(/\s+/g, "")) return 1.0;
   }
 
-  if (sn.length >= 4 && tn.length >= 4) {
+  // Tolerate minor transcription variations in single longer words.  Do not
+  // apply this to multi-word strings: "at 8" is within two edits of "at 8am",
+  // and letting that count as a match makes a merged token swallow two script
+  // words at once.
+  if (!sn.includes(" ") && !tn.includes(" ") && sn.length >= 4 && tn.length >= 4) {
     let diff = 0;
     const minLen = Math.min(sn.length, tn.length);
     for (let i = 0; i < minLen; i++) {

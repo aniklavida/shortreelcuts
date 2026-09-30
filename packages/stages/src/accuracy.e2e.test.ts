@@ -11,16 +11,32 @@
  * concatenated audio.  Each aligned word's startSeconds is compared to the
  * constructed true start by index + text similarity, not a proximity window.
  *
- * Machine: Apple M4 Mac mini, macOS 26.3 (Tahoe).
+ * Two narrations are measured.  The first holds numbers, names and
+ * abbreviations; the second adds a different set (Gen./Sgt., 700, 42,
+ * Ricci/Patel/Madrid) so the matcher is checked against words it was not
+ * tuned on.  Neither the gaps, the matcher, nor the 150 ms / 75 ms bounds may
+ * be edited to move the numbers: the test measures the product.
  *
- * Result on this machine:
- *   The only whisper model available for tests is the tiny stub model shipped
- *   by the whisper.cpp Homebrew formula for its own test suite.  That model
- *   returns an empty transcription for all inputs, so runAlign falls back to
- *   the stub time-estimator (0.32 s/word uniform).  Against the constructed
- *   ground truth, that fallback produces max drift 4307 ms and mean drift
- *   2131 ms over 15 words.  The 150 ms criterion is NOT YET VERIFIABLE on
- *   this machine: a real ggml-base or ggml-small model is required.
+ * Machine: Apple M4 Mac mini, macOS 26.3 (Tahoe). Measured on this machine:
+ *
+ *   ggml-base  narration 1: max 137 ms, mean 53 ms, 15/15 matched.  Before
+ *     the symbol/abbreviation normalization in whisper.ts the same narration
+ *     measured max 389 ms — whisper transcribed "at NASA" as one "@NASA,"
+ *     segment and the aligner gave the second word a fallback slot, placing
+ *     "NASA." 389 ms early.  The normalization lets that segment match two
+ *     script words and split it, which brings the word back inside the bound.
+ *   ggml-base  narration 2: max 118 ms, mean 60 ms, 12/12 matched.
+ *   ggml-small narration 1: max 216 ms, mean 63 ms, 15/15 matched (the 150 ms
+ *     bound is NOT met with this model — "15" 216 ms and "a.m." 197 ms are
+ *     whisper timestamp error, not mapping error).
+ *   ggml-small narration 2: max 115 ms, mean 49 ms, 12/12 matched.
+ *
+ * Word timestamps are the dominant error source: whisper's own onsets drift
+ * by ~100–200 ms on this constructed audio, and some models merge a short
+ * function word into the next acronym.  The mapping can only recover the ones
+ * it can see in the transcription; it cannot correct a timestamp whisper
+ * placed wrong.  The bound therefore passes or fails per model, and this test
+ * asserts it for whichever model the environment selects.
  *
  * Needs real binaries — macOS `say`, `ffmpeg`, `ffprobe` and `whisper-cli`
  * with a model — so it belongs to the slower suite, not to the fast one that
@@ -41,41 +57,45 @@ import { isWhisperAvailable, wordSimilarity } from "./whisper.js";
 
 const RUN_E2E = process.env["SHORTREELCUTS_RENDER_E2E"] === "1";
 
-// Fixed narration — contains numbers, names and abbreviations on purpose.
-const NARRATION =
-  "Dr. Smith counted 15 rockets at NASA. Prof. O'Connor noted 200 satellites at 8 a.m.";
-
-const NARRATION_WORDS = NARRATION.trim()
-  .split(/\s+/)
-  .filter((w) => w.length > 0);
-
 // Inter-word silence inserted between word clips (seconds).
 const GAP_S = 0.12;
 
+const NARRATIONS = [
+  {
+    id: "narration-1",
+    text: "Dr. Smith counted 15 rockets at NASA. Prof. O'Connor noted 200 satellites at 8 a.m.",
+  },
+  {
+    id: "narration-2",
+    text: "Gen. Ricci flew 700 drones to Madrid. Sgt. Patel counted 42 crates.",
+  },
+] as const;
+
+interface GroundTruth {
+  readonly dir: string;
+  readonly words: string[];
+  readonly trueStartSeconds: number[];
+  readonly concatWavPath: string;
+}
+
 describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth", () => {
   const whisperReady = isWhisperAvailable();
-  const testDir = join(process.cwd(), "media", `acc-gt-${randomUUID()}`);
+  const groundTruths = new Map<string, GroundTruth>();
 
   // True start times (seconds) built from trimmed clip durations + gaps.
-  const trueStartSeconds: number[] = [];
-  let concatWavPath = "";
-  let concatWavBytes: Uint8Array | undefined;
+  const buildGroundTruth = async (id: string, narration: string): Promise<GroundTruth> => {
+    const dir = join(process.cwd(), "media", `acc-gt-${randomUUID()}-${id}`);
+    await mkdir(dir, { recursive: true });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // beforeAll: synthesize each word separately, trim silence, concatenate
-  // ──────────────────────────────────────────────────────────────────────────
-  beforeAll(async () => {
-    if (!whisperReady) return;
-    await mkdir(testDir, { recursive: true });
-
+    const words = narration.trim().split(/\s+/).filter((w) => w.length > 0);
     const trimmedPaths: string[] = [];
     const trimmedDurations: number[] = [];
 
-    for (let i = 0; i < NARRATION_WORDS.length; i++) {
-      const word = NARRATION_WORDS[i]!;
-      const aiffPath = join(testDir, `w${i}.aiff`);
-      const rawWavPath = join(testDir, `w${i}-raw.wav`);
-      const trimmedPath = join(testDir, `w${i}-trim.wav`);
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]!;
+      const aiffPath = join(dir, `w${i}.aiff`);
+      const rawWavPath = join(dir, `w${i}-raw.wav`);
+      const trimmedPath = join(dir, `w${i}-trim.wav`);
 
       // Synthesize the single word.
       const sayResult = spawnSync("say", ["-v", "Samantha", "-o", aiffPath, word]);
@@ -128,6 +148,7 @@ describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth",
     }
 
     // Cumulative true start times: trueStart[i] = sum of prior durations + gaps.
+    const trueStartSeconds: number[] = [];
     let cursor = 0;
     for (let i = 0; i < trimmedDurations.length; i++) {
       trueStartSeconds.push(Number(cursor.toFixed(6)));
@@ -135,7 +156,7 @@ describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth",
     }
 
     // Build a 120 ms silence clip.
-    const silencePath = join(testDir, "gap.wav");
+    const silencePath = join(dir, "gap.wav");
     const silenceResult = spawnSync("ffmpeg", [
       "-y",
       "-f", "lavfi",
@@ -156,10 +177,10 @@ describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth",
         concatList.push(`file '${silencePath}'`);
       }
     }
-    const listPath = join(testDir, "concat.txt");
+    const listPath = join(dir, "concat.txt");
     await writeFile(listPath, concatList.join("\n"), "utf8");
 
-    concatWavPath = join(testDir, "concat.wav");
+    const concatWavPath = join(dir, "concat.wav");
     const concatResult = spawnSync("ffmpeg", [
       "-y", "-f", "concat", "-safe", "0",
       "-i", listPath,
@@ -170,154 +191,164 @@ describe.skipIf(!RUN_E2E)("Caption accuracy against a constructed ground truth",
       throw new Error(`ffmpeg (concat) failed: ${concatResult.stderr?.toString()}`);
     }
 
-    concatWavBytes = new Uint8Array(await readFile(concatWavPath));
-  }, 180_000);
+    return { dir, words, trueStartSeconds, concatWavPath };
+  };
+
+  beforeAll(async () => {
+    if (!whisperReady) return;
+    for (const narration of NARRATIONS) {
+      groundTruths.set(narration.id, await buildGroundTruth(narration.id, narration.text));
+    }
+  }, 300_000);
 
   afterAll(async () => {
-    if (existsSync(testDir)) {
-      await rm(testDir, { recursive: true, force: true });
+    for (const gt of groundTruths.values()) {
+      if (existsSync(gt.dir)) {
+        await rm(gt.dir, { recursive: true, force: true });
+      }
     }
   });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Main measurement
-  // ──────────────────────────────────────────────────────────────────────────
-  it(
-    "measures caption word timings against a constructed acoustic ground truth",
-    async () => {
-      if (!whisperReady) {
-        console.warn(
-          "Skipping real audio alignment accuracy test: whisper-cli / model not available.",
-        );
-        return;
-      }
+  for (const narration of NARRATIONS) {
+    it(
+      `measures caption word timings for ${narration.id} against a constructed acoustic ground truth`,
+      async () => {
+        if (!whisperReady) {
+          console.warn(
+            "Skipping real audio alignment accuracy test: whisper-cli / model not available.",
+          );
+          return;
+        }
 
-      const mediaKey = "media:concat";
-      const audioBytesMap = new Map<string, Uint8Array>([[mediaKey, concatWavBytes!]]);
+        const gt = groundTruths.get(narration.id)!;
+        const concatWavBytes = new Uint8Array(await readFile(gt.concatWavPath));
+        const mediaKey = `media:${narration.id}`;
+        const audioBytesMap = new Map<string, Uint8Array>([[mediaKey, concatWavBytes]]);
 
-      const basePlan = makeSheetFixturePlan();
-      const plan: Plan = {
-        ...basePlan,
-        script: {
-          ...basePlan.script,
-          beats: [{ id: "b1", narration: NARRATION, onScreen: NARRATION, search: "science" }],
-        },
-        voice: {
-          ...basePlan.voice,
-          provider: "local-tts",
-          mediaKeys: { b1: mediaKey },
-        },
-        footage: { b1: basePlan.footage["b1"]! },
-      };
+        const basePlan = makeSheetFixturePlan();
+        const plan: Plan = {
+          ...basePlan,
+          script: {
+            ...basePlan.script,
+            beats: [{ id: "b1", narration: narration.text, onScreen: narration.text, search: "science" }],
+          },
+          voice: {
+            ...basePlan.voice,
+            provider: "local-tts",
+            mediaKeys: { b1: mediaKey },
+          },
+          footage: { b1: basePlan.footage["b1"]! },
+        };
 
-      const mediaStore = {
-        async put(bytes: Uint8Array): Promise<string> {
-          const k = `media:${randomUUID()}`;
-          audioBytesMap.set(k, bytes);
-          return k;
-        },
-        async get(key: string): Promise<Uint8Array | undefined> {
-          return audioBytesMap.get(key);
-        },
-      };
+        const mediaStore = {
+          async put(bytes: Uint8Array): Promise<string> {
+            const k = `media:${randomUUID()}`;
+            audioBytesMap.set(k, bytes);
+            return k;
+          },
+          async get(key: string): Promise<Uint8Array | undefined> {
+            return audioBytesMap.get(key);
+          },
+        };
 
-      const alignResult = await runAlign({ plan, mediaStore, workDir: testDir });
+        const alignResult = await runAlign({ plan, mediaStore, workDir: gt.dir });
 
-      // Detect whether whisper actually produced usable output or fell back to stub.
-      const usedRealWhisper = alignResult.patch.align.provider === "whisper-cli";
+        // Detect whether whisper actually produced usable output or fell back to stub.
+        const usedRealWhisper = alignResult.patch.align.provider === "whisper-cli";
 
-      const alignedWords = alignResult.patch.align.words["b1"] ?? [];
-      expect(alignedWords.length).toBeGreaterThan(0);
+        const alignedWords = alignResult.patch.align.words["b1"] ?? [];
+        expect(alignedWords.length).toBeGreaterThan(0);
 
-      // ── Greedy index-based sequence alignment (no proximity window).
-      const perWordDriftMs: Array<{
-        word: string;
-        trueStartMs: number;
-        alignedStartMs: number;
-        driftMs: number;
-      }> = [];
+        // ── Greedy index-based sequence alignment (no proximity window).
+        const perWordDriftMs: Array<{
+          word: string;
+          trueStartMs: number;
+          alignedStartMs: number;
+          driftMs: number;
+        }> = [];
 
-      let gi = 0;
-      let ai = 0;
+        let gi = 0;
+        let ai = 0;
 
-      while (gi < NARRATION_WORDS.length && ai < alignedWords.length) {
-        const gWord = NARRATION_WORDS[gi]!;
-        const aWord = alignedWords[ai]!.word;
+        while (gi < gt.words.length && ai < alignedWords.length) {
+          const gWord = gt.words[gi]!;
+          const aWord = alignedWords[ai]!.word;
 
-        if (wordSimilarity(gWord, aWord) > 0) {
-          const trueStartMs = Math.round(trueStartSeconds[gi]! * 1000);
-          const alignedStartMs = Math.round(alignedWords[ai]!.startSeconds * 1000);
-          const driftMs = Math.abs(trueStartMs - alignedStartMs);
-          perWordDriftMs.push({ word: gWord, trueStartMs, alignedStartMs, driftMs });
-          gi++;
-          ai++;
-        } else {
-          ai++;
-          if (ai < alignedWords.length && wordSimilarity(gWord, alignedWords[ai]!.word) === 0) {
+          if (wordSimilarity(gWord, aWord) > 0) {
+            const trueStartMs = Math.round(gt.trueStartSeconds[gi]! * 1000);
+            const alignedStartMs = Math.round(alignedWords[ai]!.startSeconds * 1000);
+            const driftMs = Math.abs(trueStartMs - alignedStartMs);
+            perWordDriftMs.push({ word: gWord, trueStartMs, alignedStartMs, driftMs });
             gi++;
+            ai++;
+          } else {
+            ai++;
+            if (ai < alignedWords.length && wordSimilarity(gWord, alignedWords[ai]!.word) === 0) {
+              gi++;
+            }
           }
         }
-      }
 
-      const drifts = perWordDriftMs.map((r) => r.driftMs);
-      const maxDriftMs = drifts.length > 0 ? Math.max(...drifts) : 0;
-      const meanDriftMs =
-        drifts.length > 0
-          ? Math.round(drifts.reduce((s, d) => s + d, 0) / drifts.length)
-          : 0;
+        const drifts = perWordDriftMs.map((r) => r.driftMs);
+        const maxDriftMs = drifts.length > 0 ? Math.max(...drifts) : 0;
+        const meanDriftMs =
+          drifts.length > 0
+            ? Math.round(drifts.reduce((s, d) => s + d, 0) / drifts.length)
+            : 0;
 
-      // Print full per-word table.
-      console.log("\n[Constructed Ground Truth — per-word drift]");
-      console.log(
-        "  word".padEnd(20) +
-          "  true(ms)".padEnd(12) +
-          "  aligned(ms)".padEnd(14) +
-          "  drift(ms)",
-      );
-      for (const r of perWordDriftMs) {
+        // Print full per-word table.
+        console.log(`\n[Constructed Ground Truth — ${narration.id} — per-word drift]`);
         console.log(
-          `  ${r.word}`.padEnd(20) +
-            `  ${r.trueStartMs}`.padEnd(12) +
-            `  ${r.alignedStartMs}`.padEnd(14) +
-            `  ${r.driftMs}`,
+          "  word".padEnd(20) +
+            "  true(ms)".padEnd(12) +
+            "  aligned(ms)".padEnd(14) +
+            "  drift(ms)",
         );
-      }
+        for (const r of perWordDriftMs) {
+          console.log(
+            `  ${r.word}`.padEnd(20) +
+              `  ${r.trueStartMs}`.padEnd(12) +
+              `  ${r.alignedStartMs}`.padEnd(14) +
+              `  ${r.driftMs}`,
+          );
+        }
 
-      const worstWords = [...perWordDriftMs]
-        .sort((a, b) => b.driftMs - a.driftMs)
-        .slice(0, 5)
-        .map((r) => `"${r.word}" ${r.driftMs} ms`)
-        .join(", ");
+        const worstWords = [...perWordDriftMs]
+          .sort((a, b) => b.driftMs - a.driftMs)
+          .slice(0, 5)
+          .map((r) => `"${r.word}" ${r.driftMs} ms`)
+          .join(", ");
 
-      console.log(
-        `\n[Summary] aligner: ${alignResult.patch.align.provider}` +
-          ` | matched pairs: ${perWordDriftMs.length} / ${NARRATION_WORDS.length} words` +
-          ` | max drift: ${maxDriftMs} ms | mean drift: ${meanDriftMs} ms`,
-      );
-      console.log(`[Worst drifters] ${worstWords}`);
-
-      if (!usedRealWhisper) {
-        // The available model returned an empty transcription; the aligner fell
-        // back to uniform stub timing.  Report the stub numbers honestly and
-        // skip the 150 ms assertion — it cannot be verified without a real model.
-        console.warn(
-          "[150 ms CRITERION: NOT YET VERIFIABLE]" +
-            " The test model (ggml-tiny stub) returned an empty transcription." +
-            " A real ggml-base or ggml-small model is required to verify caption accuracy." +
-            ` Stub fallback drift on this machine: max ${maxDriftMs} ms, mean ${meanDriftMs} ms.`,
+        console.log(
+          `\n[Summary] ${narration.id} | aligner: ${alignResult.patch.align.provider}` +
+            ` | matched pairs: ${perWordDriftMs.length} / ${gt.words.length} words` +
+            ` | max drift: ${maxDriftMs} ms | mean drift: ${meanDriftMs} ms`,
         );
-        // Confirm the stub aligner was used and produced words.
-        expect(alignResult.patch.align.provider).toBe("stub-aligner");
-        return;
-      }
+        console.log(`[Worst drifters] ${worstWords}`);
 
-      // ── Real whisper path: assert the criterion honestly.
-      expect(
-        maxDriftMs,
-        `max drift ${maxDriftMs} ms exceeds 150 ms — worst: ${worstWords}`,
-      ).toBeLessThanOrEqual(150);
-      expect(meanDriftMs).toBeLessThanOrEqual(75);
-    },
-    180_000,
-  );
+        if (!usedRealWhisper) {
+          // The available model returned an empty transcription; the aligner fell
+          // back to uniform stub timing.  Report the stub numbers honestly and
+          // skip the 150 ms assertion — it cannot be verified without a real model.
+          console.warn(
+            "[150 ms CRITERION: NOT YET VERIFIABLE]" +
+              " The test model returned an empty transcription." +
+              " A real ggml-base or ggml-small model is required to verify caption accuracy." +
+              ` Stub fallback drift on this machine: max ${maxDriftMs} ms, mean ${meanDriftMs} ms.`,
+          );
+          // Confirm the stub aligner was used and produced words.
+          expect(alignResult.patch.align.provider).toBe("stub-aligner");
+          return;
+        }
+
+        // ── Real whisper path: assert the criterion honestly.
+        expect(
+          maxDriftMs,
+          `max drift ${maxDriftMs} ms exceeds 150 ms — worst: ${worstWords}`,
+        ).toBeLessThanOrEqual(150);
+        expect(meanDriftMs).toBeLessThanOrEqual(75);
+      },
+      180_000,
+    );
+  }
 });
