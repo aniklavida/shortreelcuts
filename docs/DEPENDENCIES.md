@@ -38,6 +38,9 @@ Every one is **compiled into this code or a user's**, so every one must be MIT, 
 | `drizzle-orm` | 0.45.2 | Apache-2.0 | `package.json` metadata — **the published tarball ships no licence file** | Query builder over `pg` | `packages/db` |
 | `zod` | 4.6.4 | MIT | `LICENSE` | The plan schema, and provider response validation | `packages/plan`, `packages/providers` |
 | `execa` | 10.0.1 | MIT | `node_modules/execa/license` | Spawning `ffmpeg` and `ffprobe` | `packages/render` |
+| `@fontsource/space-grotesk` | 5.3.0 | OFL-1.1 | `node_modules/@fontsource/space-grotesk/LICENSE` | Self-hosted display face for wordmark and titles | `apps/web` |
+| `@fontsource/manrope` | 5.3.0 | OFL-1.1 | `node_modules/@fontsource/manrope/LICENSE` | Self-hosted UI face for body, labels, and controls | `apps/web` |
+| `lucide-react` | 1.49.0 | ISC | `node_modules/lucide-react/LICENSE` | Interface iconography | `apps/web` |
 
 ## Development and build-time dependencies
 
