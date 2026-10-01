@@ -1,0 +1,105 @@
+/* ==========================================================================
+   DESIGN SYSTEM TOKENS
+   - Every color, size, radius and font is a variable here.
+   - Brand block specifies: hue, chroma, lightness, warmth, radius, density, fonts.
+   - Theme: set data-theme="light" or "dark" on a wrapper or html element. Colors are derived with oklch().
+   - Mobile sizes are the --m-* variables (CSS px at 1x = iOS pt / Android dp).
+   ========================================================================== */
+
+/* ---------- BRAND (the only block a brand edits) ---------- */
+:root {
+  --brand-h: 335;         /* hue 0-360 (magenta-rose) */
+  --brand-c: 0.15;        /* chroma 0-0.3 */
+  --brand-l: 0.58;        /* lightness of the accent in light mode */
+  --brand-l-dark: 0.68;   /* lightness of the accent in dark mode */
+  --warmth: 0.01;         /* chroma of neutrals: 0 = pure gray, 0.02 = clearly tinted */
+  --neutral-h: var(--brand-h); /* neutrals lean toward the brand hue by default */
+  --radius-scale: 1.3;    /* 0.5 sharp … 1.6 soft */
+  --density: 1;           /* 0.9 compact … 1.1 comfortable */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-ui: "Manrope", system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ---------- DERIVED COLOR (do not edit per brand) ---------- */
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --bg:      oklch(0.985 var(--warmth) var(--neutral-h));
+  --rail:    oklch(0.955 calc(var(--warmth) * 1.2) var(--neutral-h));
+  --surf:    oklch(0.995 calc(var(--warmth) * 0.5) var(--neutral-h));
+  --subtle:  oklch(0.97  var(--warmth) var(--neutral-h));
+  --bd:      oklch(0.90  var(--warmth) var(--neutral-h));
+  --bd2:     oklch(0.85  var(--warmth) var(--neutral-h));
+  --line:    oklch(0.94  var(--warmth) var(--neutral-h));
+  --act:     oklch(0.92  calc(var(--warmth) * 1.5) var(--neutral-h));
+  --hov:     oklch(0.94  var(--warmth) var(--neutral-h));
+  --chip:    oklch(0.88  var(--warmth) var(--neutral-h));
+  --ink:     oklch(0.22  calc(var(--warmth) * 0.8) var(--neutral-h));
+  --ink2:    oklch(0.32  calc(var(--warmth) * 0.8) var(--neutral-h));
+  --mut:     oklch(0.48  var(--warmth) var(--neutral-h));
+  --faint:   oklch(0.62  var(--warmth) var(--neutral-h));
+  --acc:     oklch(var(--brand-l) var(--brand-c) var(--brand-h));
+  --acc2:    oklch(calc(var(--brand-l) - 0.1) var(--brand-c) var(--brand-h));
+  --accbg:   oklch(0.95 calc(var(--brand-c) * 0.3) var(--brand-h));
+  --on-acc:  #ffffff;
+  --ok:      oklch(0.55 0.12 150);  --okbg:   oklch(0.95 0.04 150);
+  --warn:    oklch(0.62 0.13 75);   --warnbg: oklch(0.96 0.05 75);
+  --bad:     oklch(0.55 0.16 25);   --badbg:  oklch(0.95 0.04 25);
+  --info:    oklch(0.55 0.10 240);  --infobg: oklch(0.95 0.03 240);
+  --backdrop: rgba(0,0,0,0.30);
+  --shadow-menu:  0 12px 32px rgba(0,0,0,0.12);
+  --shadow-modal: 0 24px 60px rgba(0,0,0,0.18);
+  --shadow-card:  0 1px 2px rgba(0,0,0,0.04);
+  --chart-1: var(--acc); --chart-2: oklch(0.6 0.09 calc(var(--brand-h) + 150)); --chart-3: oklch(0.6 0.09 calc(var(--brand-h) + 60)); --chart-4: oklch(0.6 0.08 calc(var(--brand-h) + 240)); --chart-5: oklch(0.55 0.02 var(--neutral-h));
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:      oklch(0.17 var(--warmth) var(--neutral-h));
+  --rail:    oklch(0.20 var(--warmth) var(--neutral-h));
+  --surf:    oklch(0.22 var(--warmth) var(--neutral-h));
+  --subtle:  oklch(0.26 var(--warmth) var(--neutral-h));
+  --bd:      oklch(0.31 var(--warmth) var(--neutral-h));
+  --bd2:     oklch(0.37 var(--warmth) var(--neutral-h));
+  --line:    oklch(0.28 var(--warmth) var(--neutral-h));
+  --act:     oklch(0.32 calc(var(--warmth) * 1.5) var(--neutral-h));
+  --hov:     oklch(0.27 var(--warmth) var(--neutral-h));
+  --chip:    oklch(0.32 var(--warmth) var(--neutral-h));
+  --ink:     oklch(0.93 calc(var(--warmth) * 0.6) var(--neutral-h));
+  --ink2:    oklch(0.85 calc(var(--warmth) * 0.6) var(--neutral-h));
+  --mut:     oklch(0.72 var(--warmth) var(--neutral-h));
+  --faint:   oklch(0.58 var(--warmth) var(--neutral-h));
+  --acc:     oklch(var(--brand-l-dark) var(--brand-c) var(--brand-h));
+  --acc2:    oklch(calc(var(--brand-l-dark) + 0.08) var(--brand-c) var(--brand-h));
+  --accbg:   oklch(0.30 calc(var(--brand-c) * 0.4) var(--brand-h));
+  --on-acc:  #ffffff;
+  --ok:      oklch(0.75 0.12 150);  --okbg:   oklch(0.28 0.04 150);
+  --warn:    oklch(0.80 0.12 80);   --warnbg: oklch(0.30 0.05 80);
+  --bad:     oklch(0.72 0.14 25);   --badbg:  oklch(0.30 0.05 25);
+  --info:    oklch(0.75 0.09 240);  --infobg: oklch(0.28 0.04 240);
+  --backdrop: rgba(0,0,0,0.5);
+  --shadow-menu:  0 14px 36px rgba(0,0,0,0.35);
+  --shadow-modal: 0 24px 60px rgba(0,0,0,0.5);
+  --shadow-card:  none;
+}
+
+/* ---------- SCALE ---------- */
+:root {
+  --fs-xs: 11px; --fs-sm: 12px; --fs-base: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 24px; --fs-2xl: 32px; --fs-3xl: 40px; --fs-4xl: 56px;
+  --lh-tight: 1.15; --lh: 1.45; --lh-loose: 1.6;
+  --sp-1: calc(4px * var(--density)); --sp-2: calc(8px * var(--density)); --sp-3: calc(12px * var(--density)); --sp-4: calc(16px * var(--density)); --sp-5: calc(20px * var(--density)); --sp-6: calc(24px * var(--density)); --sp-8: calc(32px * var(--density)); --sp-10: calc(40px * var(--density)); --sp-12: calc(48px * var(--density));
+  --r-xs: calc(4px * var(--radius-scale)); --r-sm: calc(7px * var(--radius-scale)); --r-md: calc(10px * var(--radius-scale)); --r-lg: calc(14px * var(--radius-scale)); --r-xl: calc(18px * var(--radius-scale)); --r-pill: 999px;
+  --h-xs: 28px; --h-sm: 32px; --h-md: 36px; --h-lg: 40px; --h-xl: 48px;
+  --ease: cubic-bezier(.2,.7,.2,1); --t-fast: 120ms; --t: 180ms; --t-slow: 280ms;
+  --bp-mobile: 640px; --bp-tablet: 900px; --bp-desktop: 1200px; --bp-wide: 1600px;
+}
+/* ---------- MOBILE ---------- */
+:root {
+  --m-safe-top: env(safe-area-inset-top, 0px); --m-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --m-nav: 44px; --m-large-title: 52px; --m-tab: 49px; --m-cell: 52px; --m-cell-2: 64px;
+  --m-input: 48px; --m-btn: 50px; --m-margin: 16px; --m-sheet-r: 20px; --m-fab: 56px; --m-target: 48px;
+  --m-fs-body: 16px; --m-fs-title: 34px; --m-fs-nav: 17px;
+}
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: var(--fs-base); line-height: var(--lh); -webkit-font-smoothing: antialiased; }
+*, *::before, *::after { box-sizing: border-box; }
+a { color: var(--acc); text-decoration: none; } a:hover { color: var(--acc2); }
+::placeholder { color: var(--faint); }
